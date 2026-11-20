@@ -38,6 +38,15 @@ def pip(*args, what="pip install"):
     return run([PY, "-m", "pip", "install", "--disable-pip-version-check", *args], what)
 
 
+def venv_ok():
+    if not os.path.exists(PY):
+        return False
+    try:
+        return subprocess.run([PY, "-c", "import pip, encodings"], capture_output=True, timeout=60).returncode == 0
+    except Exception:
+        return False
+
+
 def has_nvidia():
     if MAC or "--cpu" in sys.argv:
         return False
@@ -59,18 +68,24 @@ def main():
         die("Python 3.9 or newer is needed (found %s). Install it from python.org and run again."
             % platform.python_version())
 
-    # 1. private environment
+    # 1. private environment. A .venv left half-built by an earlier failed run is rebuilt.
+    if os.path.exists(VENV) and not venv_ok():
+        say("The existing .venv does not work - rebuilding it")
+        shutil.rmtree(VENV, ignore_errors=True)
     if not os.path.exists(PY):
         say("Creating the private Python environment (.venv)")
         try:
             import venv
-            venv.EnvBuilder(with_pip=True, clear=False).create(VENV)
+            # symlinks on macOS/Linux: a COPIED interpreter from uv / pyenv / conda builds cannot
+            # find its own standard library ("No module named 'encodings'")
+            venv.EnvBuilder(with_pip=True, clear=True, symlinks=not WIN).create(VENV)
         except Exception as e:
+            shutil.rmtree(VENV, ignore_errors=True)
             hint = (" On Ubuntu/Debian first run:  sudo apt install python3-venv"
                     if sys.platform.startswith("linux") else "")
             die("could not create .venv: %s.%s" % (e, hint))
-    if not os.path.exists(PY):
-        die("the .venv has no python at %s" % PY)
+    if not venv_ok():
+        die("the .venv at %s cannot run pip. Delete the .venv folder and run the installer again." % VENV)
     pip("--upgrade", "pip", "wheel", what="upgrading pip")
 
     # 2. torch: CPU build unless an NVIDIA card is present (the CUDA build is ~2.5 GB)
