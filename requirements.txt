@@ -1,0 +1,11 @@
+# Clipper Studio - installed into .venv by install.py (torch is installed first, CPU or GPU build)
+faster-whisper>=1.0
+ultralytics>=8.1
+opencv-python-headless>=4.8
+pillow>=10.0
+numpy>=1.24
+yt-dlp[default]>=2025.1.1
+# yt-dlp needs a JavaScript runtime for YouTube links; this ships one inside the .venv
+deno>=2.0
+# private ffmpeg for machines that have none (only downloaded when needed)
+static-ffmpeg>=2.5

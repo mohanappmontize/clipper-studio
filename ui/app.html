@@ -1,0 +1,1856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clipper Studio v2</title>
+<style>
+:root{
+  --bg:#0d0f13; --panel:#14171d; --panel2:#1a1e26; --line:#262c38; --line2:#323a49;
+  --fg:#e8ecf4; --dim:#8d97a8; --accent:#ffb02e; --accent2:#4da3ff; --ok:#3ddc84; --bad:#ff5d5d;
+  --red:#ff4d4d; --blue:#3b9bff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden;
+  font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.hide{display:none !important}
+.app{display:grid;grid-template-rows:44px auto auto 1fr;height:100%}
+.top{display:flex;align-items:center;gap:12px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{font-weight:650;white-space:nowrap}.brand span{color:var(--accent)}
+.sp{flex:1}
+.jobname{color:var(--dim);max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ladder{display:flex;gap:5px;align-items:center}
+.top{min-width:0} .top .btn{flex-shrink:0} .top .jobname{min-width:40px;flex:0 1 auto} .top .ladder{min-width:0;flex:0 1 auto;overflow:hidden}
+.ladder .st{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--line2);color:var(--dim)}
+.ladder .st.on{color:#09210f;background:var(--ok);border-color:var(--ok);font-weight:600}
+.ladder .st.run{color:#1a1205;background:var(--accent);border-color:var(--accent);font-weight:600}
+.ladder i{color:#3b4454;font-style:normal}
+.bar{padding:6px 12px;font-size:12.5px;display:flex;gap:10px;align-items:center}
+.bar.err{background:#3a1416;border-bottom:1px solid #6b2226;color:#ffc9c9}
+.bar.warn{background:#2e2410;border-bottom:1px solid #6b5422;color:#ffe2ad}
+.bar b{color:#fff}
+.bar button{margin-left:auto}
+.main{display:grid;grid-template-columns:290px minmax(460px,1fr) 320px;min-height:0;min-width:0}
+.main.narrow{grid-template-columns:0 minmax(360px,1fr) 300px}
+/* the panel keeps its grid slot (display:none would re-place the other two columns) */
+.main.narrow .side{overflow:hidden;padding:0;border:0;opacity:0;pointer-events:none}
+.side,.insp{background:var(--panel2);overflow-y:auto;padding:10px;min-width:0}
+.side{border-right:1px solid var(--line)}
+.insp{border-left:1px solid var(--line);background:var(--panel)}
+h4{margin:13px 0 6px;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
+h4:first-child{margin-top:2px}
+.fld{margin-bottom:7px}
+.fld label{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+input,select,textarea{width:100%;background:#0f1218;border:1px solid var(--line2);border-radius:6px;
+  padding:6px 8px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
+input[type=range]{padding:0}
+input[type=checkbox]{width:auto}
+.row{display:flex;gap:6px;align-items:center}.row>*{flex:1;min-width:0}
+.row.tight>*{flex:0 0 auto}
+.btn{background:var(--accent);color:#1a1205;border:0;border-radius:7px;padding:7px 10px;font-weight:600;
+  cursor:pointer;width:100%}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:#222935;color:var(--fg);font-weight:500}
+.btn.sm{width:auto;padding:4px 9px;font-size:12px}
+.hint{font-size:11px;color:var(--dim);margin-top:5px;line-height:1.5}
+.list{max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:7px;background:#0f1218}
+.list .it{padding:5px 8px;font-size:12px;cursor:pointer;border-bottom:1px solid #1b2029;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .it:hover{background:#19202b}
+.list .it.on{color:var(--accent)}
+.list .it small{color:var(--dim)}
+.sline.on{background:#1d2534;border-radius:5px;box-shadow:inset 2px 0 0 var(--accent)}
+.sline .wd:hover{background:#2a3444;border-radius:3px;cursor:text}
+.log{background:#0b0e12;border:1px solid var(--line);border-radius:7px;padding:7px;height:104px;overflow:auto;
+  font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#9fb0c6;white-space:pre-wrap}
+.centre{display:grid;grid-template-rows:1fr 206px 108px;min-width:0;min-height:0;overflow:hidden}
+.stage{display:grid;grid-template-columns:1fr 272px;grid-template-rows:minmax(0,1fr);min-height:0;min-width:0;background:#07090c;overflow:hidden}
+.view{display:flex;flex-direction:column;min-height:0;min-width:0;padding:8px;gap:6px;overflow:hidden}
+.view{height:100%}
+.vwrap{flex:1 1 0;overflow:hidden}
+.transport{flex:0 0 auto}
+.vwrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#vid{max-width:100%;max-height:100%;background:#000;border-radius:8px}
+.ovl{position:absolute;pointer-events:none}
+.box{position:absolute;border:2px solid var(--blue);pointer-events:auto;cursor:move;z-index:2;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.2) inset}   /* blue box feeds the TOP half, like Rumble's */
+.box.bot{border-color:var(--red);z-index:1}
+.box.one{border-color:var(--accent)}
+.box:hover{z-index:4}                      /* the box under the cursor wins, so overlapping handles stay grabbable */
+.box .tag{position:absolute;top:-18px;left:-2px;font-size:10px;padding:1px 6px;border-radius:4px;
+  background:var(--blue);color:#fff;font-weight:600;white-space:nowrap}
+.box.bot .tag{background:var(--red)}
+.box.one .tag{background:var(--accent);color:#1a1205}
+/* handles sit INSIDE their own box. Outside (-8px) the top box's SW handle landed exactly on the
+   bottom box's NW handle where the two halves meet, and the wrong box got grabbed. */
+.box .h{position:absolute;width:16px;height:16px;background:#fff;border:1px solid #000;border-radius:3px;
+  box-shadow:0 1px 3px #000a;pointer-events:auto;z-index:6}
+.box .h.nw{left:1px;top:1px;cursor:nwse-resize}
+.box .h.ne{right:1px;top:1px;cursor:nesw-resize}
+.box .h.sw{left:1px;bottom:1px;cursor:nesw-resize}
+.box .h.se{right:1px;bottom:1px;cursor:nwse-resize}
+.ovlhint{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-size:11px;
+  background:#0c1016d9;color:#9fb0c6;border:1px solid var(--line2);border-radius:6px;padding:3px 9px;
+  pointer-events:none;white-space:nowrap}
+.transport{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.transport b{color:var(--fg);font-variant-numeric:tabular-nums}
+.prev{border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;padding:8px;background:#0a0d11}
+#prev{background:#000;border-radius:8px;max-height:100%;box-shadow:0 6px 30px #000a}
+.prevnote{font-size:10px;color:var(--dim);text-align:center}
+.trackwin{position:absolute;top:0;bottom:0;border:2px solid var(--ok);box-shadow:0 0 0 9999px rgba(0,0,0,.35);
+  pointer-events:none;z-index:4}
+.subpin{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--ok);pointer-events:none;z-index:5}
+.subpin span{position:absolute;top:2px;left:3px;font-size:10px;background:var(--ok);color:#06220f;
+  padding:1px 5px;border-radius:4px;font-weight:700;white-space:nowrap}
+.btn.on{border-color:var(--accent);color:var(--accent)}
+.prevwrap{position:relative;line-height:0;max-height:100%}
+/* the divider between the two halves is a grip you drag, not only a slider (Rumble's '=' handle) */
+.grip{position:absolute;left:50%;transform:translate(-50%,-50%);width:52px;height:15px;border-radius:8px;
+  background:#f2f5fa;border:1px solid #0009;cursor:ns-resize;z-index:3;display:flex;align-items:center;
+  justify-content:center;font:700 11px/1 system-ui;color:#2a2f38;box-shadow:0 1px 5px #000b}
+.grip:hover{background:#fff}
+.pmodes{display:flex;gap:6px;justify-content:center}
+.pmode{width:48px;height:27px;border-radius:7px;border:1px solid var(--line2);background:#121620;
+  color:var(--dim);cursor:pointer;font-size:13px;line-height:1}
+.pmode.on{border-color:var(--accent);color:var(--accent);background:#1d1a12}
+.cbl{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--dim);white-space:nowrap}
+@media (max-width:1180px){
+  /* a narrow window (the app's side pane): the frame takes the whole width and the 9:16 preview sits
+     under it, so the crop boxes stay big enough to grab */
+  .stage{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .prev{flex-direction:row;gap:10px;border-left:0;border-top:1px solid var(--line);padding:6px;flex-wrap:wrap}
+  #prev{max-height:130px;width:auto}
+  .prevnote{text-align:left;max-width:58%}
+  .main.narrow{grid-template-columns:0 minmax(300px,1fr) 272px}
+}
+.tlwrap{position:relative;background:var(--panel);border-top:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0}
+.tlbar{display:flex;align-items:center;gap:5px;padding:4px 8px;border-bottom:1px solid var(--line);
+  font-size:11.5px;color:var(--dim);flex-wrap:wrap}
+#tl{flex:1;width:100%;display:block;cursor:crosshair}
+.wedit{position:absolute;z-index:9;width:auto;min-width:90px;font-size:12px;padding:2px 5px}
+.strip{background:var(--panel2);border-top:1px solid var(--line);display:flex;gap:7px;overflow-x:auto;
+  padding:8px;align-items:stretch}
+.card{flex:0 0 182px;background:#151a22;border:1px solid var(--line);border-radius:8px;padding:7px;
+  cursor:pointer;position:relative;user-select:none}
+.card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.card .h{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px}
+.card .h b{color:var(--accent)}
+.card .t{font-size:11px;color:#9eaabb;height:28px;overflow:hidden}
+.card .f{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.card .f button{background:#222935;border:0;border-radius:5px;color:var(--dim);font-size:10.5px;
+  padding:2px 6px;cursor:pointer}
+.card .f button:hover{color:var(--fg)}
+.pill{font-size:10px;padding:1px 6px;border-radius:10px;background:#222935;color:var(--dim)}
+.pill.ok{background:#12351f;color:var(--ok)}
+.pill.bad{background:#3a1416;color:var(--bad)}
+.subs{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:7px;background:#0f1218}
+.sline{padding:5px 7px;border-bottom:1px solid #1b2029;font-size:12px}
+.sline .tm{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums;cursor:pointer}
+.sline .wd{display:inline-block;padding:1px 3px;border-radius:3px;cursor:text}
+.sline .wd:hover{background:#243040}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #1d222b;font-size:12px}
+.kv span:first-child{color:var(--dim)}
+.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:50}
+.modal .sheet{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:14px;width:520px;
+  max-height:72vh;display:flex;flex-direction:column;gap:8px}
+.modal .list{max-height:44vh}
+.places{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.places button{font-size:11px;padding:2px 7px}
+.setrow{display:flex;gap:6px;align-items:center;margin:4px 0}
+.setrow code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--txt)}
+.sheet h5{margin:12px 0 4px;font-size:12px;color:var(--dim);font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Clipper <span>Studio</span> <small style="color:var(--dim);font-size:11px">v2</small></div>
+    <div class="ladder" id="ladder"></div>
+    <button class="btn sm ghost hide" id="bCancel">Cancel</button>
+    <div class="sp"></div>
+    <div class="jobname" id="jobname">no video loaded</div>
+    <button class="btn sm ghost" id="bPanels" title="hide the left panel">⇤</button>
+    <button class="btn sm ghost" id="bUndo" title="Ctrl+Z">Undo</button>
+    <button class="btn sm ghost" id="bRedo" title="Ctrl+Shift+Z">Redo</button>
+    <button class="btn sm ghost" id="bSettings" title="projects folder and video folders">Settings</button>
+  </header>
+  <div class="bar warn hide" id="firstrun"></div>
+  <div class="bar warn hide" id="envbar"></div>
+  <div class="bar err hide" id="err"></div>
+  <main class="main" id="main">
+
+    <aside class="side">
+      <h4>Source</h4>
+      <div class="fld"><input id="srcPath" placeholder="/path/to/video.mp4 or a YouTube URL"></div>
+      <div class="row">
+        <button class="btn" id="bLoad">Load</button>
+        <button class="btn ghost" id="bPreview">Preview only</button>
+        <button class="btn ghost" id="bUpload">Upload…</button>
+        <input type="file" id="upfile" accept="video/*" class="hide">
+      </div>
+      <div class="hint">Click a file to play it at once. Load ingests it and opens it here — any codec
+        works: a browser-safe H.264 preview copy is built for you and the render still uses the original.</div>
+      <h4>Recent videos</h4>
+      <div class="list" id="recent"></div>
+      <h4>Browse</h4>
+      <div class="fld"><input id="browsePath" placeholder="~"></div>
+      <div class="list" id="browse"></div>
+      <h4>Jobs</h4>
+      <div class="list" id="jobs"></div>
+      <h4>Stages</h4>
+      <div class="row"><select id="model">
+        <option value="small">whisper small</option>
+        <option value="medium" selected>whisper medium</option>
+      </select><button class="btn ghost" id="bTrans">Transcribe</button></div>
+      <div class="row" style="margin-top:6px">
+        <select id="style"><option value="talk">talk</option><option value="gameplay">gameplay</option></select>
+        <input id="count" type="number" value="6" min="1" max="20" title="how many clips">
+        <button class="btn ghost" id="bMoments">Moments</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <input id="minlen" type="number" value="18" min="3" max="180" title="shortest clip (s)">
+        <input id="maxlen" type="number" value="60" min="5" max="300" title="longest clip (s)">
+        <span style="color:var(--dim);font-size:11px">sec min / max</span>
+      </div>
+      <h4>Log</h4>
+      <div class="log" id="log"></div>
+    </aside>
+
+    <section class="centre">
+      <div class="stage">
+        <div class="view">
+          <div class="vwrap" id="vwrap">
+            <video id="vid" playsinline></video>
+            <div class="ovl" id="ovl"></div>
+          </div>
+          <div class="transport">
+            <button class="btn sm ghost" id="bPlay">Play</button>
+            <b id="tNow">0:00.00</b> / <span id="tDur">0:00</span>
+            <label><input type="checkbox" id="loopClip" checked> loop clip</label>
+            <label><input type="checkbox" id="showBoxes" checked> crop boxes</label>
+            <span id="vmsg" style="color:var(--bad)"></span>
+            <button class="btn sm ghost hide" id="bProxy">Make preview copy</button>
+          </div>
+        </div>
+        <div class="prev">
+          <div class="prevwrap" id="prevwrap">
+            <canvas id="prev" width="384" height="683"></canvas>
+            <div class="grip hide" id="pgrip" title="drag the divider to move the split">=</div>
+          </div>
+          <div class="pmodes">
+            <button class="pmode" id="pmFull" title="full 9:16 — one region">▯</button>
+            <button class="pmode" id="pmSplit" title="split 9:16 — two regions">⊟</button>
+          </div>
+          <div class="prevnote" id="prevnote">live 9:16 preview — nothing is rendered until Render</div>
+        </div>
+      </div>
+
+      <div class="tlwrap">
+        <div class="tlbar">
+          <button class="btn sm ghost" id="bZin">+</button>
+          <button class="btn sm ghost" id="bZout">−</button>
+          <button class="btn sm ghost" id="bFit">Fit all</button>
+          <button class="btn sm ghost" id="bFitClip">Fit clip</button>
+          <span id="tlrange"></span>
+          <span class="sp"></span>
+          <button class="btn sm ghost" id="bIn" title="I">Set in</button>
+          <button class="btn sm ghost" id="bOut" title="O">Set out</button>
+          <button class="btn sm ghost" id="bSplit" title="S">Split</button>
+          <button class="btn sm ghost" id="bDel">Delete</button>
+          <button class="btn sm ghost" id="bAdd">Add clip</button>
+          <label style="color:var(--dim)"><input type="checkbox" id="snap" checked> snap</label>
+        </div>
+        <canvas id="tl"></canvas>
+        <input class="wedit hide" id="wedit">
+      </div>
+
+      <div class="strip" id="strip"></div>
+    </section>
+
+    <aside class="insp">
+      <h4>Clip</h4>
+      <div class="row tight" style="margin-bottom:6px">
+        <input id="inNum" type="number" step="0.1" style="flex:1" title="in point (s)">
+        <input id="outNum" type="number" step="0.1" style="flex:1" title="out point (s)">
+      </div>
+      <div class="row tight" style="margin-bottom:6px;gap:4px">
+        <button class="btn sm ghost" data-nudge="in,-0.1">in −0.1</button>
+        <button class="btn sm ghost" data-nudge="in,0.1">in +0.1</button>
+        <button class="btn sm ghost" data-nudge="out,-0.1">out −0.1</button>
+        <button class="btn sm ghost" data-nudge="out,0.1">out +0.1</button>
+      </div>
+      <div id="clipinfo"></div>
+
+      <h4>Reframe</h4>
+      <div class="fld"><label>Layout</label>
+        <select id="layout">
+          <option value="stack">9:16 stack — whole 16:9 on a band</option>
+          <option value="boxes">9:16 split screen — two crop boxes</option>
+          <option value="crop">9:16 full — auto track subject</option>
+          <option value="cropbox">9:16 full — one crop box</option>
+        </select></div>
+      <div class="fld" id="splitFld"><label>Split (top half) <b id="splitVal">50%</b></label>
+        <input type="range" id="split" min="15" max="85" value="50"></div>
+      <div class="fld" id="fitFld"><label>Fit whole box — letterbox it instead of cutting the sides</label>
+        <div class="row" style="gap:12px">
+          <label class="cbl" id="fitTopL"><input type="checkbox" id="fitTop">
+            <b style="color:var(--blue)">■</b> top box</label>
+          <label class="cbl" id="fitBotL"><input type="checkbox" id="fitBot">
+            <b style="color:var(--red)">■</b> bottom box</label>
+          <label class="cbl" id="fitOneL"><input type="checkbox" id="fitOne">
+            <b style="color:var(--accent)">■</b> whole box</label>
+        </div></div>
+      <div id="stackFlds">
+        <div class="fld"><label>Band height <b id="tpVal">38%</b></label>
+          <input type="range" id="toppct" min="0" max="68" value="38"></div>
+        <div class="fld"><label>Top band file (camera clip or still)</label>
+          <div class="row"><input id="topfile" placeholder="(none — band is blurred fill)" readonly>
+            <button class="btn ghost sm" id="bTopPick">Pick</button>
+            <button class="btn ghost sm" id="bTopClear">Clear</button></div></div>
+        <div class="row">
+          <select id="fill"><option value="blur">blur fill</option><option value="black">black</option>
+            <option value="white">white</option><option value="#101418">dark grey</option></select>
+          <input id="round" type="number" value="28" min="0" max="80" title="corner radius">
+        </div>
+        <label class="cbl" style="margin-top:5px"><input type="checkbox" id="bandfit">
+          fit the whole band file (no cropping)</label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" id="bBoxReset">Reset boxes</button>
+        <button class="btn ghost sm" id="bBoxAll">Boxes → all clips</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" id="bPick">Pick subject</button>
+        <button class="btn ghost sm" id="bTrack">Detect subject</button>
+        <button class="btn ghost sm" id="bPickClear" title="follow whoever is most confident again">Any</button>
+      </div>
+      <div class="hint" id="subjhint">tracking follows the most confident person — press Pick subject, then
+        click the one you want followed</div>
+
+      <h4>Text</h4>
+      <div class="fld"><label>Burned hook (first 3 s)</label><input id="hook" placeholder="hook text"></div>
+      <div class="fld"><label><input type="checkbox" id="autohook"> use each clip's first line as its hook</label></div>
+      <div class="fld"><label>End CTA</label><input id="cta" placeholder=""></div>
+      <div class="fld"><label>Caption size <b id="capVal">72</b></label>
+        <input type="range" id="capsize" min="40" max="110" value="72"></div>
+      <div class="fld"><label>Caption style</label>
+        <div class="row">
+          <select id="capstyle">
+            <option value="clean">clean — outline</option>
+            <option value="box">box — filled background</option>
+            <option value="pop">pop — spoken word springs</option>
+            <option value="shout">shout — CAPS + box</option>
+            <option value="neon">neon — pop + thick glow</option>
+          </select>
+          <input type="color" id="capcolor" value="#ffb02e" title="colour of the spoken word"
+                 style="width:46px;padding:2px">
+          <input type="number" id="capwords" value="4" min="1" max="7" title="words per line" style="width:56px">
+        </div></div>
+      <div class="fld"><label>Caption position <b id="capYVal">auto</b></label>
+        <div class="row">
+          <input type="range" id="capy" min="20" max="97" value="78">
+          <button class="btn ghost sm" id="bCapAuto">Auto</button>
+        </div>
+        <div class="hint">or drag the caption up and down on the 9:16 preview</div></div>
+      <div class="row">
+        <label style="color:var(--dim);font-size:11.5px"><input type="checkbox" id="nocaps"> no captions</label>
+        <label style="color:var(--dim);font-size:11.5px"><input type="checkbox" id="cutsil"> cut silence</label>
+        <label style="color:var(--dim);font-size:11.5px"><input type="checkbox" id="cutfil"> cut filler</label>
+      </div>
+
+      <h4>Subtitles — click a word to fix it</h4>
+      <div class="hint">the line playing now is highlighted; click its time to jump there</div>
+      <div class="subs" id="subs"></div>
+
+      <h4>Export</h4>
+      <div class="fld"><label>Output folder</label>
+        <div class="row"><input id="outdir"><button class="btn ghost sm" id="bOutPick">Pick</button></div></div>
+      <div class="fld"><label>Size and quality</label>
+        <div class="row">
+          <select id="size">
+            <option value="1080x1920">1080 × 1920 (standard reel)</option>
+            <option value="720x1280">720 × 1280 (light)</option>
+            <option value="1440x2560">1440 × 2560 (sharp, big file)</option>
+          </select>
+          <select id="fps" style="width:86px"><option value="30">30 fps</option><option value="60">60 fps</option></select>
+        </div></div>
+      <div class="row">
+        <select id="quality">
+          <option value="high">high — 12M</option>
+          <option value="standard" selected>standard — 9M</option>
+          <option value="small">small — 5M</option>
+          <option value="custom">custom bitrate</option>
+        </select>
+        <input id="bitrate" value="9M" style="width:84px" title="bitrate">
+        <button class="btn ghost sm" id="bOpen">Open folder</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" id="bRender">Render clip</button>
+        <button class="btn ghost" id="bRenderAll">Render all</button>
+      </div>
+      <div class="hint" id="renderhint"></div>
+    </aside>
+  </main>
+</div>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const el = (t, c) => { const e = document.createElement(t); if (c) e.className = c; return e; };
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const fmt = (t, d) => {
+  if (!isFinite(t)) t = 0;
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ":" + (s < 10 ? "0" : "") + s.toFixed(d === undefined ? 2 : d);
+};
+async function getj(u) { const r = await fetch(u); const j = await r.json(); if (j && j.error) showErr(j.error); return j; }
+async function post(u, b) {
+  const r = await fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+  let j = {}; try { j = await r.json(); } catch (e) { j = { error: "server sent no answer" }; }
+  if (j.error) showErr(j.error); else clearErr();
+  return j;
+}
+
+/* the render geometry, copied from render.py so the preview can show the real thing */
+const RW = 1080, RH = 1920, RVH = 608;
+const DEFAULT_OPTS = () => ({ top_pct: 38, top: "", fill: "blur", round: 28, cap_size: 72,
+  hook: "", cta: "", bitrate: "9M", no_caps: false, cut_silence: false, cut_filler: false,
+  autohook: false, outdir: "",
+  size: "1080x1920", fps: 30, quality: "standard", band_fit: false,
+  cap_style: "clean", cap_color: "#ffb02e", cap_words: 4, cap_y: null });
+const QUALITY = { high: "12M", standard: "9M", small: "5M" };
+const CAP_STYLE = {   /* what each style does to the drawing, so the preview is not a lie */
+  clean: { box: false, pop: false, caps: false, active: null },
+  box:   { box: true,  pop: false, caps: false, active: null },
+  pop:   { box: false, pop: true,  caps: false, active: null },
+  shout: { box: true,  pop: true,  caps: true,  active: null },
+  neon:  { box: false, pop: true,  caps: false, active: null }
+};
+
+const S = {
+  job: null, meta: null, src: null, dur: 0, clips: [], plans: {}, sel: null,
+  words: [], cuts: [], wave: null, view: { a: 0, b: 60 }, drag: null,
+  undo: [], redo: [], lastJid: null, runJid: null, rate: 1, opts: DEFAULT_OPTS(),
+  uiLayout: "stack", need: true, lastDrawT: -1, selTok: 0
+};
+const DEF_BOXES = () => ({ top: [0.05, 0.06, 0.40, 0.40], bot: [0.0, 0.30, 1.0, 0.70], split: 50,
+  top_fit: false, bot_fit: false });
+const C_TOP = "#3b9bff", C_BOT = "#ff4d4d", C_ONE = "#ffb02e";   /* blue = top half, red = bottom half */
+const DEF_BOX = () => [0.28, 0.0, 0.44, 1.0];
+
+function showErr(m) { const e = $("#err"); e.innerHTML = "<b>error</b> " + m; e.classList.remove("hide"); }
+function clearErr() { $("#err").classList.add("hide"); }
+function logln(s) { const l = $("#log"); if (l.textContent !== s) { l.textContent = s; l.scrollTop = l.scrollHeight; } }
+/* two readers consume this: the timeline (which clears S.need) and the 9:16 preview, which needs
+   its own flag or a preview-only change (fit, split) can be swallowed by the timeline's redraw */
+const dirty = () => { S.need = true; S.prevNeed = true; };
+
+/* ---------------- source / jobs ---------------- */
+async function loadRecent() {
+  const d = await getj("/api/recent"), box = $("#recent"); box.innerHTML = "";
+  (d.files || []).forEach(f => {
+    const it = el("div", "it"); it.textContent = f.name; it.title = f.path;
+    it.onclick = () => { $("#srcPath").value = f.path; previewFile(f.path); };
+    box.appendChild(it);
+  });
+}
+async function loadBrowse(path) {
+  const d = await getj("/api/browse?path=" + encodeURIComponent(path || ""));
+  $("#browsePath").value = d.path; const box = $("#browse"); box.innerHTML = "";
+  box.appendChild(placesRow(d.places, loadBrowse));
+  const up = el("div", "it"); up.innerHTML = "<small>.. up</small>";
+  up.onclick = () => loadBrowse(d.up); box.appendChild(up);
+  d.dirs.forEach(x => { const i = el("div", "it"); i.innerHTML = "<small>dir</small> " + x.name;
+    i.onclick = () => loadBrowse(x.path); box.appendChild(i); });
+  d.files.forEach(x => { const i = el("div", "it"); i.textContent = x.name; i.title = x.path;
+    i.onclick = () => { $("#srcPath").value = x.path; previewFile(x.path); }; box.appendChild(i); });
+}
+async function loadJobs() {
+  const d = await getj("/api/jobs"), box = $("#jobs"); box.innerHTML = "";
+  (d.jobs || []).sort((a, b) => b.mtime - a.mtime).forEach(j => {
+    const i = el("div", "it" + (j.job === S.job ? " on" : ""));
+    i.innerHTML = j.job + " <small>" + (j.clips ? j.clips + " clips" : "no clips") + "</small>";
+    i.onclick = () => selJob(j.job); box.appendChild(i);
+  });
+}
+function previewFile(path) {
+  S.job = null; S.clips = []; S.plans = {}; S.sel = null; S.words = []; S.cuts = []; S.wave = null;
+  S.src = path; $("#jobname").textContent = baseName(path) + "  (preview — press Load to clip it)";
+  setVideo(path); ladder(); drawStrip(); drawSubs(); dirty();
+}
+function setVideo(path, keepTime) {
+  const v = $("#vid");
+  /* reloading the <video> for a file it is already playing is what made the picture vanish every time
+     a background stage finished, so the same path is a no-op */
+  if (S.vidPath === path && v.readyState >= 1) return;
+  const back = keepTime ? (v.currentTime || 0) : null;
+  S.vidPath = path; $("#vmsg").textContent = "";
+  v.src = "/media?path=" + encodeURIComponent(path);
+  if (back !== null) v.addEventListener("loadeddata", () => { try { v.currentTime = back; } catch (e) {} },
+                                        { once: true });
+  v.onloadedmetadata = () => {
+    S.dur = v.duration || S.dur;
+    if (!S.clips.length) S.view = { a: 0, b: Math.min(S.dur || 60, 120) };
+    $("#tDur").textContent = fmt(S.dur, 0); layoutOverlay(); dirty();
+    setTimeout(checkDecode, 400);
+  };
+  v.oncanplay = () => setTimeout(checkDecode, 100);
+  v.onerror = () => $("#vmsg").textContent =
+    "this file will not decode in the browser (HEVC/AV1/10-bit?) — Load it, or make an H.264 proxy";
+  v.load();
+}
+
+function checkDecode() {
+  const v = $("#vid");
+  const bad = v.readyState >= 1 && !v.videoWidth;        /* HEVC/AV1: metadata reads, no picture */
+  $("#bProxy").classList.toggle("hide", !(bad && S.job));
+  if (bad) $("#vmsg").textContent = S.job
+    ? "this video has no picture in the browser (HEVC/AV1/10-bit) — make a preview copy:"
+    : "this video has no picture in the browser (HEVC/AV1/10-bit) — press Load, then make a preview copy";
+  else if (v.videoWidth) $("#vmsg").textContent = "";
+}
+
+async function selJob(job, soft) {
+  /* soft = a refresh after a background stage: keep the player, the playhead and what is selected */
+  clearErr();
+  const tok = ++S.selTok;                       /* a later click wins: no half-loaded job on screen */
+  const d = await getj("/api/job?job=" + encodeURIComponent(job));
+  if (tok !== S.selTok) return;
+  if (!d || !d.meta) return showErr("job " + job + " has no meta.json yet");
+  const keep = soft ? { t: $("#vid").currentTime, sel: S.sel, view: S.view } : null;
+  S.job = job; S.meta = d.meta; S.dur = d.meta.dur || 0; S.clips = d.clips || [];
+  S.plans = {}; (d.plans || []).forEach(p => S.plans[p.n] = p);
+  S.src = d.meta.video; S.undo = []; S.redo = [];
+  $("#jobname").textContent = job + " — " + (d.meta.title || "");
+  S.opts = Object.assign(DEFAULT_OPTS(), d.ui || {}, (d.project || {}).opts || {});
+  if (!S.opts.outdir) S.opts.outdir = d.outdir || "";
+  optsToPanel();
+  S.proxy = d.proxy || null;
+  S.safeSrc = !!(d.meta.vcodec === "h264" && (d.meta.pix_fmt || "").indexOf("420") >= 0);
+  setVideo(S.proxy || d.meta.video, !!keep);       /* a new job must not inherit the old job's playhead */
+  if (!S.proxy && !S.safeSrc && d.meta.vcodec)
+    $("#vmsg").textContent = "preparing a browser-safe preview copy of this " +
+      d.meta.vcodec.toUpperCase() + " file — the render still uses the original";
+  try { localStorage.setItem("clipper2.lastJob", job); } catch (e) {}
+  const w = await getj("/api/waveform?job=" + job + "&bins=2400");
+  if (tok !== S.selTok) return;
+  S.wave = w; S.cuts = w.cuts || [];
+  const t = await getj("/api/words?job=" + job);
+  if (tok !== S.selTok) return;
+  S.words = t.words || [];
+  const pr = d.project || {};
+  S.sel = (pr.sel && S.clips.some(c => c.n === pr.sel)) ? pr.sel : (S.clips[0] ? S.clips[0].n : null);
+  if (keep && keep.sel && S.clips.some(c => c.n === keep.sel)) S.sel = keep.sel;
+  if (keep && keep.view && keep.view.b > keep.view.a) S.view = keep.view;
+  else if (pr.view && pr.view.b > pr.view.a) S.view = pr.view;
+  else fitClip();
+  const want = keep ? keep.t : (pr.t !== undefined ? pr.t : (S.sel ? clipById(S.sel).start : 0));
+  seekWhenReady(want);
+  if (!keep && !(want > 0.05)) skipBlackStart(tok);
+  planToPanel(); ladder(); drawStrip(); drawSubs(); loadJobs(); layoutOverlay(); dirty();
+}
+
+function seekWhenReady(t) {
+  const v = $("#vid");
+  if (!(t >= 0)) return;
+  if (v.readyState >= 1) { try { v.currentTime = t; } catch (e) {} }
+  else v.addEventListener("loadedmetadata", () => { try { v.currentTime = t; } catch (e) {} }, { once: true });
+}
+/* many sources open on a black fade-in: at t=0 the player and the 9:16 preview look dead.
+   Step forward until there is a picture, unless the user seeks or opens another job first. */
+function frameLuma(v) {
+  try {
+    const c = frameLuma.c || (frameLuma.c = document.createElement("canvas")); c.width = 32; c.height = 18;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(v, 0, 0, 32, 18);
+    const px = g.getImageData(0, 0, 32, 18).data; let sum = 0;
+    for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    return sum / (px.length / 4);
+  } catch (e) { return 255; }
+}
+async function skipBlackStart(tok) {
+  const v = $("#vid");
+  const ok = () => tok === S.selTok;
+  const ready = () => new Promise(res => {          /* loadeddata is not reliable after a src swap: poll readyState */
+    const t0 = Date.now(), tick = () => (v.readyState >= 2 || Date.now() - t0 > 15000 || !ok()) ? res() : setTimeout(tick, 100);
+    tick(); });
+  const seekTo = t => new Promise(res => { const done = () => res(); v.addEventListener("seeked", done, { once: true });
+    setTimeout(done, 3000); v.currentTime = t; });
+  await ready(); if (!ok() || v.currentTime > 0.05 || !v.videoWidth) return;
+  if (frameLuma(v) >= 12) return;
+  for (const t of [1, 3, 6, 10, 20, 40, 60]) {
+    if (!ok() || !(t < (S.dur || v.duration || 0))) return;
+    await seekTo(t); if (!ok()) return;
+    if (Math.abs(v.currentTime - t) > 0.5) return;          /* the user moved the playhead: leave it */
+    if (frameLuma(v) > 15) break;
+  }
+  dirty();
+}
+const clipById = n => S.clips.find(c => c.n === n);
+const curClip = () => S.sel ? clipById(S.sel) : null;
+function plan(n) {
+  if (!S.plans[n]) S.plans[n] = { n: n, layout: "stack", top_pct: S.opts.top_pct };
+  return S.plans[n];
+}
+
+/* ---------------- stage ladder, status, environment ---------------- */
+function ladder(running) {
+  const steps = [["ingest", !!S.job], ["transcript", S.words.length > 0],
+                 ["moments", S.clips.length > 0], ["ready", S.clips.length > 0 && !!S.plans[S.sel]]];
+  const map = { ingest: 0, transcribe: 1, "find moments": 2, reframe: 3, render: 3 };
+  const run = running !== undefined && map[running] !== undefined ? map[running] : -1;
+  $("#ladder").innerHTML = steps.map((s, i) =>
+    (i ? "<i>›</i>" : "") + "<span class='st" + (i === run ? " run" : (s[1] ? " on" : "")) + "'>" + s[0] + "</span>").join("");
+}
+async function poll() {
+  try {
+    const d = await getj("/api/status");
+    const jobs = d.jobs || [];
+    const run = jobs.filter(j => j.state === "running");
+    const last = jobs[jobs.length - 1];
+    if (last) logln((last.log || []).slice(-40).join("\n"));
+    ladder(run.length ? run[run.length - 1].title : undefined);
+    $("#bCancel").classList.toggle("hide", !run.length);
+    S.runJid = run.length ? run[run.length - 1].id : null;
+    // a page reload forgets S.lastJid, so a stage started before the reload would finish unseen and the
+    // panel would keep showing the old plan: any job we saw running that is now done also soft-refreshes
+    const was = S.seenRun || new Set();
+    S.seenRun = new Set(run.map(j => j.id));
+    if (S.job && !S.lastJid && jobs.some(j => was.has(j.id) && j.state === "done")) await selJob(S.job, true);
+    for (const j of jobs) {
+      if (j.id !== S.lastJid) continue;
+      if (j.state === "error") { showErr(j.title + " failed: " + (j.log || []).slice(-1)[0]); S.lastJid = S.trackJid = null; }
+      else if (j.state === "done") {
+        if (S.trackJid === j.id) $("#subjhint").textContent = "clip " + S.trackN + " tracked — the 9:16 window now follows the subject";
+        S.lastJid = S.trackJid = null; clearErr();
+        if (S.pendingJob) { const nj = S.pendingJob; S.pendingJob = null; await selJob(nj); }
+        else if (S.job) await selJob(S.job, true);        // soft: the picture and the playhead stay put
+        else loadJobs();
+      }
+    }
+  } catch (e) { }
+  setTimeout(poll, 1300);
+}
+async function envCheck() {
+  const e = await getj("/api/env");
+  const miss = (e && e._missing) || [];
+  if (miss.length) {
+    const nice = { "h264_nvenc": "NVENC (GPU encode — renders fall back to libx264)",
+      "faster_whisper": "faster-whisper (no transcription)", "cv2": "OpenCV (no subject tracking)",
+      "ultralytics": "YOLO (person tracking falls back to face detect)", "yt-dlp": "yt-dlp (no YouTube URLs)",
+      "PIL": "Pillow (no rounded corners)" };
+    $("#envbar").innerHTML = "<b>missing</b> " + miss.map(m => nice[m] || m).join(" · ");
+    $("#envbar").classList.remove("hide");
+  }
+}
+
+/* ---------------- timeline ---------------- */
+const LANE = { ruler: [0, 20], wave: [20, 86], clips: [88, 126], caps: [128, 162] };
+const TLH = 168;
+function tlW() { return $("#tl").clientWidth; }
+const t2x = t => (t - S.view.a) / Math.max(.001, S.view.b - S.view.a) * tlW();
+const x2t = x => S.view.a + x / Math.max(1, tlW()) * (S.view.b - S.view.a);
+function snapT(t) {
+  if (!$("#snap").checked) return t;
+  const tol = (S.view.b - S.view.a) / Math.max(1, tlW()) * 8;
+  let best = t, bd = tol;
+  const cands = S.cuts.concat(S.words.length ? [] : []);
+  for (const w of S.words) { cands.push(w.s); cands.push(w.e); }
+  for (const c of cands) { const d = Math.abs(c - t); if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+
+function drawTL() {
+  const cv = $("#tl"), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = TLH;
+  if (!w) return;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + "px";
+  }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#11141a"; g.fillRect(0, 0, w, h);
+  const span = S.view.b - S.view.a;
+  $("#tlrange").textContent = fmt(S.view.a, 1) + " – " + fmt(S.view.b, 1) + "  (" + span.toFixed(1) + " s)";
+
+  g.fillStyle = "#171b22"; g.fillRect(0, LANE.ruler[0], w, LANE.ruler[1]);
+  const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800];
+  const st = steps.find(s => span / s <= 12) || 3600;
+  g.strokeStyle = "#2b3240"; g.fillStyle = "#8d97a8"; g.font = "10px system-ui"; g.lineWidth = 1;
+  for (let t = Math.ceil(S.view.a / st) * st; t <= S.view.b; t += st) {
+    const x = Math.round(t2x(t)) + .5;
+    g.beginPath(); g.moveTo(x, 4); g.lineTo(x, 20); g.stroke();
+    g.fillText(fmt(t, st < 1 ? 1 : 0), x + 3, 13);
+  }
+
+  const [wy, wy2] = LANE.wave, wh = wy2 - wy;
+  g.fillStyle = "#0c0f14"; g.fillRect(0, wy, w, wh);
+  if (S.wave && S.wave.have) {
+    const step = S.wave.step, P = S.wave.peaks, F = S.wave.floor || P;
+    const quiet = S.wave.median_db;                        /* the cutter's own threshold, in dB */
+    for (let x = 0; x < w; x++) {
+      const t = x2t(x); if (t < 0 || t > S.dur) continue;
+      const i = Math.floor(t / step); if (i < 0 || i >= P.length) continue;
+      const pk = P[i], fl = F[i];
+      const db = -60 + pk * 55;                            /* undo the 0..1 scaling the server did */
+      const silent = quiet === null || quiet === undefined ? pk < 0.22 : db < quiet - 6;
+      g.fillStyle = silent ? "#2a2f3a" : "#2f6f9e";
+      const bh = Math.max(1, pk * (wh - 6));
+      g.fillRect(x, wy + (wh - bh) / 2, 1, bh);
+      if (!silent) { g.fillStyle = "#4da3ff"; const b2 = Math.max(1, fl * (wh - 6) * .6);
+        g.fillRect(x, wy + (wh - b2) / 2, 1, b2); }
+    }
+    g.fillStyle = "#616c7d"; g.font = "9px system-ui";
+    g.fillText("audio — dim = quiet enough for the silence cutter", 6, wy2 - 4);
+  } else {
+    g.fillStyle = "#4b5565"; g.font = "11px system-ui";
+    g.fillText(S.job ? "no signals yet — run Moments to get the waveform and scene cuts"
+                     : "load a job to see the waveform", 8, wy + wh / 2);
+  }
+  g.strokeStyle = "rgba(255,176,46,.45)";
+  S.cuts.forEach(c => { if (c >= S.view.a && c <= S.view.b) {
+    const x = Math.round(t2x(c)) + .5; g.beginPath(); g.moveTo(x, wy); g.lineTo(x, wy + 10); g.stroke(); } });
+
+  const [cy, cy2] = LANE.clips, ch = cy2 - cy;
+  g.fillStyle = "#0c0f14"; g.fillRect(0, cy, w, ch);
+  S.clips.forEach(c => {
+    const x1 = t2x(c.start), x2 = t2x(c.end);
+    if (x2 < -4 || x1 > w + 4) return;
+    const on = c.n === S.sel;
+    g.fillStyle = on ? "#3a2f12" : "#1b2330";
+    g.fillRect(x1, cy + 3, Math.max(3, x2 - x1), ch - 6);
+    g.strokeStyle = on ? "#ffb02e" : "#3a4557"; g.lineWidth = on ? 2 : 1;
+    g.strokeRect(Math.round(x1) + .5, cy + 3.5, Math.max(3, x2 - x1), ch - 7);
+    g.fillStyle = on ? "#ffb02e" : "#9eaabb"; g.font = "11px system-ui";
+    g.fillText("#" + c.n + "  " + (c.end - c.start).toFixed(1) + "s", x1 + 7, cy + 17);
+    g.fillStyle = on ? "#ffb02e" : "#55617a";
+    g.fillRect(x1, cy + 3, 5, ch - 6); g.fillRect(x2 - 5, cy + 3, 5, ch - 6);
+  });
+  if (!S.clips.length) { g.fillStyle = "#4b5565"; g.font = "11px system-ui";
+    g.fillText("no clips — drag here to draw one, run Moments, or press Add clip", 8, cy + 20); }
+
+  const [py, py2] = LANE.caps, ph = py2 - py;
+  g.fillStyle = "#0c0f14"; g.fillRect(0, py, w, ph);
+  const vis = S.words.filter(x => x.e >= S.view.a && x.s <= S.view.b).slice(0, 400);
+  g.font = "11px system-ui";
+  if (!S.words.length) { g.fillStyle = "#4b5565";
+    g.fillText("no transcript — press Transcribe; captions come from it", 8, py + 20); }
+  vis.forEach(x => {
+    const x1 = t2x(x.s), x2 = Math.max(x1 + 3, t2x(x.e));
+    g.fillStyle = "#1d2836"; g.fillRect(x1, py + 5, x2 - x1 - 1, ph - 12);
+    g.fillStyle = "#44506a"; g.fillRect(x1, py + 5, 2, ph - 12); g.fillRect(x2 - 3, py + 5, 2, ph - 12);
+    if (x2 - x1 > 22) { g.save(); g.beginPath(); g.rect(x1 + 3, py, x2 - x1 - 7, ph); g.clip();
+      g.fillStyle = "#b9c4d4"; g.fillText(x.w, x1 + 4, py + ph / 2 + 4); g.restore(); }
+  });
+  if (!vis.length) { g.fillStyle = "#4b5565"; g.fillText("captions appear here after Transcribe", 8, py + 20); }
+
+  const c = curClip();
+  if (c) { g.strokeStyle = "#ffb02e"; g.lineWidth = 1;
+    [c.start, c.end].forEach(t => { const x = Math.round(t2x(t)) + .5;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }); }
+  const pt = $("#vid").currentTime || 0, px = t2x(pt);
+  if (px >= -2 && px <= w + 2) {
+    g.strokeStyle = "#ff4d4d"; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(Math.round(px) + .5, 0); g.lineTo(Math.round(px) + .5, h); g.stroke();
+    g.fillStyle = "#ff4d4d"; g.beginPath(); g.moveTo(px - 6, 0); g.lineTo(px + 6, 0); g.lineTo(px, 9); g.fill();
+  }
+  S.need = false; S.lastDrawT = pt;
+}
+
+function hit(x, y) {
+  const t = x2t(x), tol = (S.view.b - S.view.a) / Math.max(1, tlW()) * 7;
+  if (y >= LANE.clips[0] && y <= LANE.clips[1]) {
+    for (const c of S.clips) {
+      if (t >= c.start - tol && t <= c.end + tol) {
+        if (Math.abs(t - c.start) <= tol) return { kind: "trimL", n: c.n };
+        if (Math.abs(t - c.end) <= tol) return { kind: "trimR", n: c.n };
+        return { kind: "move", n: c.n, off: t - c.start };
+      }
+    }
+    return { kind: "seek" };
+  }
+  if (y >= LANE.caps[0] && y <= LANE.caps[1]) {
+    for (const wd of S.words) {
+      if (t >= wd.s - tol && t <= wd.e + tol) {
+        if (Math.abs(t - wd.s) <= tol) return { kind: "wordL", i: wd.i };
+        if (Math.abs(t - wd.e) <= tol) return { kind: "wordR", i: wd.i };
+        return { kind: "word", i: wd.i, x: x };
+      }
+    }
+  }
+  return { kind: "seek" };
+}
+function tlDown(ev) {
+  const r = $("#tl").getBoundingClientRect();
+  const x = ev.clientX - r.left, y = ev.clientY - r.top;
+  const h = hit(x, y);
+  $("#wedit").classList.add("hide");
+  if (h.kind === "seek" && S.job && y >= LANE.clips[0] && y <= LANE.clips[1]) {
+    /* empty part of the clips lane: drag to draw a new clip, a plain click just seeks */
+    S.drag = { kind: "new", t0: clamp(snapT(x2t(x)), 0, S.dur), x0: x, moved: false, before: snapshot(), n: null };
+  }
+  else if (h.kind === "seek") { seek(x2t(x)); S.drag = { kind: "seek" }; }
+  else if (h.kind === "move" || h.kind === "trimL" || h.kind === "trimR") {
+    S.sel = h.n; S.drag = Object.assign({}, h, { moved: false, before: snapshot() });
+    planToPanel(); drawStrip(); drawSubs();
+  } else if (h.kind === "word" || h.kind === "wordL" || h.kind === "wordR") {
+    S.drag = Object.assign({}, h, { moved: false, before: snapshot() });
+  }
+  dirty();
+  window.addEventListener("mousemove", tlMove); window.addEventListener("mouseup", tlUp);
+}
+function tlMove(ev) {
+  if (!S.drag) return;
+  const r = $("#tl").getBoundingClientRect(), t = x2t(ev.clientX - r.left), d = S.drag;
+  if (d.kind === "new") {
+    if (!d.n && Math.abs(ev.clientX - r.left - d.x0) < 4) return;    /* not a drag yet */
+    const t1 = clamp(snapT(t), 0, S.dur);
+    let a = Math.min(d.t0, t1), b = Math.max(d.t0, t1);
+    if (b - a < 0.4) { if (t1 >= d.t0) b = Math.min(S.dur, a + 0.4); else a = Math.max(0, b - 0.4); }
+    if (!d.n) {
+      d.n = S.clips.length ? Math.max.apply(null, S.clips.map(x => x.n)) + 1 : 1;
+      S.clips.push({ n: d.n, start: a, end: b, score: 0, text: "", title: "" }); S.sel = d.n;
+    }
+    const c = clipById(d.n); c.start = +a.toFixed(2); c.end = +b.toFixed(2);
+    d.moved = true; dirty(); drawStrip(); clipNums(); return;
+  }
+  d.moved = true;
+  if (d.kind === "seek") seek(t);
+  else if (d.kind === "trimL") { const c = clipById(d.n); c.start = clamp(snapT(t), 0, c.end - 0.4); }
+  else if (d.kind === "trimR") { const c = clipById(d.n); c.end = clamp(snapT(t), c.start + 0.4, S.dur); }
+  else if (d.kind === "move") {
+    const c = clipById(d.n), len = c.end - c.start;
+    const s = clamp(snapT(t - d.off), 0, Math.max(0, S.dur - len));
+    c.start = s; c.end = s + len;
+  } else if (d.kind === "wordL" || d.kind === "wordR") {
+    const wd = S.words.find(w => w.i === d.i);
+    if (d.kind === "wordL") wd.s = clamp(t, 0, wd.e - 0.05); else wd.e = clamp(t, wd.s + 0.05, S.dur);
+  }
+  dirty(); drawStrip(); clipNums();
+}
+function tlUp() {
+  window.removeEventListener("mousemove", tlMove); window.removeEventListener("mouseup", tlUp);
+  const d = S.drag; S.drag = null;
+  if (!d) return;
+  if (d.moved && d.before) { S.undo.push(d.before); S.redo = []; }
+  if (d.moved && (d.kind === "trimL" || d.kind === "trimR" || d.kind === "move")) { saveClips(); drawSubs(); }
+  if (d.kind === "new") {
+    if (d.n) { saveClips(); planToPanel(); drawStrip(); drawSubs(); seek(clipById(d.n).start); }
+    else seek(d.t0);
+  }
+  if (d.moved && (d.kind === "wordL" || d.kind === "wordR")) {
+    const wd = S.words.find(w => w.i === d.i);
+    post("/api/words", { job: S.job, edits: [{ i: wd.i, s: wd.s, e: wd.e }] }).then(drawSubs);
+  }
+  if (d.kind === "word" && !d.moved) openWordEdit(d.i, d.x);
+  dirty();
+}
+function openWordEdit(i, x) {
+  const wd = S.words.find(w => w.i === i); if (!wd) return;
+  const inp = $("#wedit"), tl = $("#tl");
+  inp.classList.remove("hide");
+  inp.style.left = clamp(x - 40, 2, tl.clientWidth - 120) + "px";
+  inp.style.top = (tl.offsetTop + LANE.caps[0] - 4) + "px";
+  inp.value = wd.w; inp.focus(); inp.select();
+  inp.onkeydown = e => {
+    if (e.key === "Enter") { wd.w = inp.value; inp.classList.add("hide");
+      post("/api/words", { job: S.job, edits: [{ i: wd.i, w: wd.w }] }).then(() => { drawSubs(); dirty(); }); }
+    if (e.key === "Escape") inp.classList.add("hide");
+    e.stopPropagation();
+  };
+}
+function seek(t) { const v = $("#vid"); v.currentTime = clamp(t, 0, S.dur || v.duration || 0); dirty(); }
+function fitAll() { S.view = { a: 0, b: Math.max(1, S.dur || 60) }; dirty(); saveProject(); }
+function fitClip() {
+  const c = curClip(); if (!c) return fitAll();
+  const pad = Math.max(1, (c.end - c.start) * .25);
+  S.view = { a: Math.max(0, c.start - pad), b: c.end + pad }; dirty(); saveProject();
+}
+function zoom(f, at) {
+  const span = S.view.b - S.view.a, mid = at === undefined ? ($("#vid").currentTime || (S.view.a + span / 2)) : at;
+  const ns = clamp(span * f, 0.5, Math.max(2, S.dur || 60));
+  let a = mid - (mid - S.view.a) * (ns / span), b = a + ns;
+  if (a < 0) { b -= a; a = 0; }
+  S.view = { a: a, b: b }; dirty(); saveProject();
+}
+
+/* ---------------- clips ---------------- */
+function drawStrip() {
+  const box = $("#strip"); box.innerHTML = "";
+  S.clips.forEach((c, idx) => {
+    const d = el("div", "card" + (c.n === S.sel ? " on" : ""));
+    const p = S.plans[c.n] || {};
+    const lay = (p.layout === "crop" && p.box) ? "box"
+              : p.boxes ? "split" : (p.box ? "box" : (p.layout || "-"));
+    let badge = "<span class='pill'>" + lay + "</span>";
+    if (c.rendered) badge += c.valid
+      ? (c.valid.ok ? "<span class='pill ok'>passed</span>"
+                    : "<span class='pill bad' title='" + (c.valid.why || "").replace(/'/g, "") + "'>FAILED</span>")
+      : "<span class='pill ok'>rendered</span>";
+    d.innerHTML = "<div class='h'><b>#" + c.n + "</b><span>" + (c.end - c.start).toFixed(1) + "s</span></div>" +
+      "<div class='t'>" + ((c.text || "").slice(0, 60) || "<i style='color:#55617a'>no text</i>") + "</div>" +
+      "<div class='f'>" + badge + "</div>";
+    const f = d.querySelector(".f");
+    const mk = (t, fn, ti) => { const b = el("button"); b.textContent = t; b.title = ti || "";
+      b.onclick = e => { e.stopPropagation(); fn(); }; f.appendChild(b); };
+    mk("◀", () => reorder(idx, -1), "move earlier in the render order");
+    mk("▶", () => reorder(idx, 1), "move later in the render order");
+    mk("✂", () => splitClip(c.n), "split at the playhead");
+    mk("✕", () => delClip(c.n, true), "delete this clip");
+    d.onclick = () => { S.sel = c.n; seek(c.start); planToPanel(); drawStrip(); drawSubs(); dirty(); saveProject(); };
+    box.appendChild(d);
+  });
+  const info = $("#clipinfo"), c = curClip();
+  if (!c) { info.innerHTML = "<div class='hint'>no clip selected</div>"; clipNums(); return; }
+  info.innerHTML =
+    "<div class='kv'><span>length</span><span>" + (c.end - c.start).toFixed(2) + " s</span></div>" +
+    "<div class='kv'><span>score</span><span>" + (c.score || 0) + "</span></div>" +
+    "<div class='kv'><span>rendered</span><span>" + (c.rendered ? (c.valid ? (c.valid.ok ? "yes, passed" : "yes, FAILED: " + c.valid.why) : "yes") : "no") + "</span></div>" +
+    (c.why && c.why.length ? "<div class='hint'>" + c.why.join(" · ") + "</div>" : "");
+  clipNums();
+}
+function clipNums() {
+  const c = curClip();
+  $("#inNum").value = c ? c.start.toFixed(2) : "";
+  $("#outNum").value = c ? c.end.toFixed(2) : "";
+}
+function reorder(idx, dir) {
+  const j = idx + dir; if (j < 0 || j >= S.clips.length) return;
+  mark();
+  const t = S.clips[idx]; S.clips[idx] = S.clips[j]; S.clips[j] = t;
+  saveClips(); drawStrip();
+}
+function splitClip(n) {
+  const c = clipById(n), t = $("#vid").currentTime;
+  if (!c || t <= c.start + 0.3 || t >= c.end - 0.3) return showErr("put the playhead inside clip #" + n + " to split it");
+  mark();
+  const nn = Math.max.apply(null, S.clips.map(x => x.n)) + 1;
+  const b = { n: nn, start: +(t.toFixed(2)), end: c.end, score: c.score, text: "", title: "" };
+  c.end = +(t.toFixed(2));
+  S.clips.splice(S.clips.indexOf(c) + 1, 0, b);
+  const np = Object.assign({}, S.plans[n] || {}, { n: nn });
+  delete np.track; delete np.tracked;                  /* those samples belong to the old in/out */
+  S.plans[nn] = np;
+  saveClips(); drawStrip(); dirty();
+}
+function delClip(n, ask) {
+  if (ask && !confirm("Delete clip #" + n + " from this job? (Undo can bring it back)")) return;
+  mark();
+  S.clips = S.clips.filter(c => c.n !== n);
+  if (S.sel === n) S.sel = S.clips[0] ? S.clips[0].n : null;
+  saveClips(); drawStrip(); drawSubs(); dirty();
+}
+function addClip() {
+  if (!S.job) return showErr("load a job first");
+  mark();
+  const t = $("#vid").currentTime || 0;
+  const nn = S.clips.length ? Math.max.apply(null, S.clips.map(x => x.n)) + 1 : 1;
+  S.clips.push({ n: nn, start: +t.toFixed(2), end: +Math.min(S.dur, t + 20).toFixed(2), score: 0, text: "", title: "" });
+  S.sel = nn; saveClips(); planToPanel(); drawStrip(); drawSubs(); dirty();
+}
+async function saveClips() {
+  if (!S.job) return;
+  await post("/api/clips", { job: S.job, clips: S.clips.map(c =>
+    ({ n: c.n, start: c.start, end: c.end, text: c.text, title: c.title, score: c.score })) });
+  saveProject();
+}
+
+/* ---------------- subtitles (grouped exactly like captions.py) ---------------- */
+function capLines(words, maxChars, maxWords, maxGap) {
+  maxChars = maxChars || 26; maxWords = maxWords || 4; maxGap = maxGap === undefined ? 0.7 : maxGap;
+  const lines = []; let cur = [];
+  for (const w of words) {
+    const t = (w.w || "").trim(); if (!t) continue;
+    const gap = cur.length && (w.s - cur[cur.length - 1].e > maxGap);
+    const long = cur.length && (cur.reduce((a, x) => a + x.w.length + 1, 0) + t.length > maxChars || cur.length >= maxWords);
+    if (gap || long) { lines.push(cur); cur = []; }
+    cur.push(w);
+    if (/[.!?]$/.test(t) && cur.length >= 2) { lines.push(cur); cur = []; }
+  }
+  if (cur.length) lines.push(cur);
+  return lines;
+}
+function drawSubs() {
+  const box = $("#subs"); box.innerHTML = "";
+  const c = curClip();
+  const a = c ? c.start - 0.5 : S.view.a, b = c ? c.end + 0.5 : S.view.b;
+  const ws = S.words.filter(w => w.e >= a && w.s <= b);
+  if (!ws.length) {
+    box.innerHTML = "<div class='hint' style='padding:8px'>no words here — run Transcribe, or pick a clip</div>"; return;
+  }
+  capLines(ws, 26, S.opts.cap_words || 4).forEach(L => {
+    const d = el("div", "sline");
+    d.dataset.s = L[0].s; d.dataset.e = L[L.length - 1].e;
+    const tm = el("span", "tm"); tm.textContent = fmt(L[0].s, 1) + "  ";
+    tm.onclick = () => seek(L[0].s); d.appendChild(tm);
+    L.forEach(w => {
+      const s = el("span", "wd"); s.textContent = w.w; s.contentEditable = "true"; s.spellcheck = false;
+      s.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); s.blur(); } e.stopPropagation(); };
+      s.onblur = () => { const t = s.textContent.trim();
+        if (t && t !== w.w) { w.w = t; post("/api/words", { job: S.job, edits: [{ i: w.i, w: t }] }).then(dirty); } };
+      d.appendChild(s); d.appendChild(document.createTextNode(" "));
+    });
+    box.appendChild(d);
+  });
+  markSubLine(true);
+}
+function markSubLine(force) {
+  /* highlight the caption line that is on screen right now, and keep it in view */
+  const t = $("#vid").currentTime || 0;
+  const rows = [...$("#subs").querySelectorAll(".sline")];
+  /* exactly one line is "now": the one the playhead is inside, else the one it has just left */
+  let on = rows.find(d => t >= +d.dataset.s && t <= +d.dataset.e)
+        || rows.filter(d => +d.dataset.s <= t).pop() || null;
+  rows.forEach(d => d.classList.toggle("on", d === on));
+  if (on && (force || on !== S.subOn)) {
+    const box = $("#subs");
+    const r = on.offsetTop - box.scrollTop;
+    if (r < 0 || r > box.clientHeight - on.offsetHeight) box.scrollTop = on.offsetTop - box.clientHeight / 2;
+  }
+  S.subOn = on;
+}
+function contentRect() {
+  const v = $("#vid"), wr = $("#vwrap").getBoundingClientRect(), r = v.getBoundingClientRect();
+  const vw = v.videoWidth || 16, vh = v.videoHeight || 9;
+  const sc = Math.min(r.width / vw, r.height / vh), w = vw * sc, h = vh * sc;
+  return { x: r.left - wr.left + (r.width - w) / 2, y: r.top - wr.top + (r.height - h) / 2, w: w, h: h };
+}
+function layoutOverlay() {
+  const o = $("#ovl"), cr = contentRect();
+  o.style.left = cr.x + "px"; o.style.top = cr.y + "px"; o.style.width = cr.w + "px"; o.style.height = cr.h + "px";
+  drawBoxes();
+}
+function activeBoxes() {
+  const c = curClip(); if (!c) return null;
+  const p = plan(c.n);
+  if (S.uiLayout === "boxes") { if (!p.boxes) p.boxes = DEF_BOXES(); return p.boxes; }
+  if (S.uiLayout === "cropbox") { if (!p.box) p.box = DEF_BOX(); return { one: p.box }; }
+  return null;
+}
+function drawBoxes() {
+  const o = $("#ovl"); o.innerHTML = "";
+  drawSubject();
+  if (!$("#showBoxes").checked) return;
+  const B = activeBoxes();
+  if (!B) {
+    /* stack and auto-track have no hand-drawn rectangles. Saying so beats an empty frame, which is
+       what "the selection boxes are gone" looked like. */
+    const h = el("div", "ovlhint");
+    h.textContent = curClip() && S.uiLayout === "crop"
+      ? "auto track — the green window follows the subject; Pick subject to choose who"
+      : curClip()
+      ? "this layout has no crop boxes — press ▯ (full 9:16) or ⊟ (split 9:16) under the preview"
+      : "no clip selected — press Add clip, or run Moments";
+    $("#ovl").appendChild(h);
+    drawSubject(); return;
+  }
+  const mk = (key, rect, cls, label) => {
+    const d = el("div", "box " + cls);
+    d.style.left = (rect[0] * 100) + "%"; d.style.top = (rect[1] * 100) + "%";
+    d.style.width = (rect[2] * 100) + "%"; d.style.height = (rect[3] * 100) + "%";
+    d.innerHTML = "<span class='tag'>" + label + "</span>" +
+      ["nw", "ne", "sw", "se"].map(h => "<span class='h " + h + "' data-h='" + h + "'></span>").join("");
+    d.onmousedown = ev => { d.style.zIndex = 5; boxDown(ev, key); };
+    d.onmouseenter = () => { d.style.zIndex = 4; };
+    d.onmouseleave = () => { d.style.zIndex = ""; };
+    o.appendChild(d);
+  };
+  if (B.one) mk("one", B.one, "one", "9:16 crop — drag or resize");
+  else { mk("top", B.top, "", "TOP half"); mk("bot", B.bot, "bot", "BOTTOM half"); }
+}
+function trackWin(x, w) {
+  /* the 9:16 window the auto track is using right now, drawn on the 16:9 frame so you can see it move */
+  const o = $("#ovl"); let d = o.querySelector(".trackwin");
+  if (x === null) { if (d) d.remove(); return; }
+  if (!d) { d = el("div", "trackwin"); o.appendChild(d); }
+  d.style.left = (x * 100) + "%"; d.style.width = (w * 100) + "%";
+}
+async function trackClip(c, subject) {
+  /* auto-track one clip: switch it to the auto-track 9:16 layout and run the tracker on it now,
+     locked to the picked person when there is one */
+  if (S.uiLayout !== "crop") { $("#layout").value = "crop"; $("#layout").dispatchEvent(new Event("change")); }
+  const r = await post("/api/reframe", { job: S.job, layout: "crop", top_pct: S.opts.top_pct, device: "cpu",
+    subject: subject || null, clip: c.n });
+  S.lastJid = S.trackJid = r.job_id; S.trackN = c.n;
+  $("#subjhint").textContent = (subject ? "locked on the person at " + Math.round(subject[0] * 100) + "% across — " : "")
+    + "tracking clip " + c.n + "…";
+  dirty();
+}
+function drawSubject() {
+  /* a pin on the frame showing which person the tracker has been told to follow */
+  const o = $("#ovl"), c = curClip();
+  const old = o.querySelector(".subpin"); if (old) old.remove();
+  if (!c) return;
+  const sub = plan(c.n).subject;
+  if (!sub) return;
+  const d = el("div", "subpin");
+  d.style.left = (sub[0] * 100) + "%";
+  d.innerHTML = "<span>subject</span>";
+  o.appendChild(d);
+}
+function boxDown(ev, key) {
+  ev.preventDefault(); ev.stopPropagation();
+  const handle = ev.target.dataset ? ev.target.dataset.h : null;
+  const cr = contentRect(), B = activeBoxes();
+  const st = { x: ev.clientX, y: ev.clientY, r: (key === "one" ? B.one : B[key]).slice(), handle: handle };
+  const before = snapshot();
+  let moved = false;
+  const move = e => {
+    moved = true;
+    const dx = (e.clientX - st.x) / cr.w, dy = (e.clientY - st.y) / cr.h;
+    let x = st.r[0], y = st.r[1], w = st.r[2], h = st.r[3];
+    if (!st.handle) { x = clamp(x + dx, 0, 1 - w); y = clamp(y + dy, 0, 1 - h); }
+    else {
+      if (st.handle.indexOf("w") >= 0) { const nx = clamp(x + dx, 0, x + w - 0.05); w = w + (x - nx); x = nx; }
+      if (st.handle.indexOf("e") >= 0) { w = clamp(w + dx, 0.05, 1 - x); }
+      if (st.handle.indexOf("n") >= 0) { const ny = clamp(y + dy, 0, y + h - 0.05); h = h + (y - ny); y = ny; }
+      if (st.handle.indexOf("s") >= 0) { h = clamp(h + dy, 0.05, 1 - y); }
+    }
+    const nr = [+x.toFixed(4), +y.toFixed(4), +w.toFixed(4), +h.toFixed(4)];
+    const p = plan(S.sel);
+    if (key === "one") { B.one = nr; p.box = nr; } else { B[key] = nr; p.boxes[key] = nr; }
+    drawBoxes(); dirty();
+  };
+  const up = () => {
+    window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up);
+    if (moved) { S.undo.push(before); S.redo = []; saveBoxes(); }
+  };
+  window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+}
+async function saveBoxes() {
+  const c = curClip(); if (!c || !S.job) return;
+  const p = plan(c.n);
+  const body = { job: S.job, n: c.n, top_pct: S.opts.top_pct };
+  if (S.uiLayout === "boxes") { body.layout = "boxes"; body.boxes = p.boxes; }
+  else if (S.uiLayout === "cropbox") { body.layout = "crop"; body.box = p.box; body.box_fit = !!p.box_fit; }
+  else { body.layout = S.uiLayout; body.clear = true; delete p.boxes; delete p.box; }
+  const r = await post("/api/boxes", body);
+  if (r.plan) S.plans[c.n] = r.plan;
+  drawStrip(); dirty();
+}
+function setPortraitMode(v) {
+  /* the two shape buttons under the portrait preview: full 9:16 (one region) or split 9:16 (two) */
+  $("#layout").value = v;
+  $("#layout").dispatchEvent(new Event("change"));
+}
+function syncPortrait() {
+  const split = S.uiLayout === "boxes", full = S.uiLayout === "cropbox";
+  $("#pmFull").classList.toggle("on", full);
+  $("#pmSplit").classList.toggle("on", split);
+  const g = $("#pgrip"), c = curClip();
+  g.classList.toggle("hide", !(split && c));
+  if (split && c) g.style.top = ((plan(c.n).boxes || DEF_BOXES()).split || 50) + "%";
+}
+function planToPanel() {
+  const c = curClip();
+  if (!c) { $("#splitFld").style.display = "none"; $("#fitFld").style.display = "none";
+            syncPortrait(); return; }
+  const p = plan(c.n);
+  S.uiLayout = (p.layout === "boxes" && p.boxes) ? "boxes"
+             : (p.layout === "crop" && p.box) ? "cropbox"
+             : p.boxes ? "boxes" : (p.box ? "cropbox" : (p.layout || "stack"));
+  $("#layout").value = S.uiLayout;
+  const sp = (p.boxes && p.boxes.split) || 50;
+  $("#split").value = sp; $("#splitVal").textContent = sp + "%";
+  $("#splitFld").style.display = S.uiLayout === "boxes" ? "" : "none";
+  $("#stackFlds").style.display = S.uiLayout === "stack" ? "" : "none";
+  fitToPanel(p);
+  syncPortrait();
+  drawBoxes(); dirty();
+}
+function fitToPanel(p) {
+  const split = S.uiLayout === "boxes", one = S.uiLayout === "cropbox";
+  $("#fitFld").style.display = (split || one) ? "" : "none";
+  $("#fitTopL").style.display = split ? "" : "none";
+  $("#fitBotL").style.display = split ? "" : "none";
+  $("#fitOneL").style.display = one ? "" : "none";
+  $("#fitTop").checked = !!(p.boxes && p.boxes.top_fit);
+  $("#fitBot").checked = !!(p.boxes && p.boxes.bot_fit);
+  $("#fitOne").checked = !!p.box_fit;
+}
+
+/* ---------------- options ---------------- */
+function capYAuto() { return S.opts.cap_y === null || S.opts.cap_y === undefined; }
+function optsToPanel() {
+  $("#size").value = S.opts.size || "1080x1920";
+  $("#fps").value = String(S.opts.fps || 30);
+  $("#quality").value = S.opts.quality || "standard";
+  $("#capstyle").value = S.opts.cap_style || "clean";
+  $("#capcolor").value = S.opts.cap_color || "#ffb02e";
+  $("#capwords").value = S.opts.cap_words || 4;
+  $("#bandfit").checked = !!S.opts.band_fit;
+  $("#capy").value = capYAuto() ? 78 : S.opts.cap_y;
+  $("#capYVal").textContent = capYAuto() ? "auto" : Math.round(S.opts.cap_y) + "%";
+  $("#hook").value = S.opts.hook || ""; $("#cta").value = S.opts.cta || "";
+  $("#capsize").value = S.opts.cap_size || 72; $("#capVal").textContent = S.opts.cap_size || 72;
+  $("#toppct").value = S.opts.top_pct || 0; $("#tpVal").textContent = (S.opts.top_pct || 0) + "%";
+  $("#bitrate").value = S.opts.bitrate || "9M";
+  $("#topfile").value = S.opts.top || "";
+  $("#fill").value = S.opts.fill || "blur";
+  $("#round").value = S.opts.round === undefined ? 28 : S.opts.round;
+  $("#nocaps").checked = !!S.opts.no_caps; $("#cutsil").checked = !!S.opts.cut_silence;
+  $("#cutfil").checked = !!S.opts.cut_filler; $("#autohook").checked = !!S.opts.autohook;
+  $("#outdir").value = S.opts.outdir || "";
+}
+function panelToOpts() {
+  S.opts.hook = $("#hook").value; S.opts.cta = $("#cta").value;
+  S.opts.cap_size = +$("#capsize").value; S.opts.top_pct = +$("#toppct").value;
+  S.opts.bitrate = $("#bitrate").value; S.opts.no_caps = $("#nocaps").checked;
+  S.opts.cut_silence = $("#cutsil").checked; S.opts.cut_filler = $("#cutfil").checked;
+  S.opts.autohook = $("#autohook").checked; S.opts.outdir = $("#outdir").value;
+  S.opts.top = $("#topfile").value; S.opts.fill = $("#fill").value; S.opts.round = +$("#round").value;
+  S.opts.size = $("#size").value; S.opts.fps = +$("#fps").value; S.opts.quality = $("#quality").value;
+  S.opts.cap_style = $("#capstyle").value; S.opts.cap_color = $("#capcolor").value;
+  S.opts.cap_words = Math.max(1, Math.min(7, +$("#capwords").value || 4));
+  S.opts.band_fit = $("#bandfit").checked;
+  if (S.opts.quality !== "custom") { S.opts.bitrate = QUALITY[S.opts.quality]; $("#bitrate").value = S.opts.bitrate; }
+  $("#capVal").textContent = S.opts.cap_size; $("#tpVal").textContent = S.opts.top_pct + "%";
+  $("#capYVal").textContent = capYAuto() ? "auto" : Math.round(S.opts.cap_y) + "%";
+  bandMedia();
+  dirty(); saveProject();
+}
+let saveTimer = null;
+function saveProject() {
+  if (!S.job) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => post("/api/project", { job: S.job,
+    project: { sel: S.sel, view: S.view, opts: S.opts, layout: S.uiLayout, outdir: S.opts.outdir,
+               t: $("#vid").currentTime || 0 } }), 900);
+}
+
+/* ---------------- undo / redo ---------------- */
+const snapshot = () => JSON.stringify({ clips: S.clips, plans: S.plans, sel: S.sel });
+function mark() { S.undo.push(snapshot()); S.redo = []; if (S.undo.length > 60) S.undo.shift(); }
+async function applySnap(s) {
+  const o = JSON.parse(s);
+  S.clips = o.clips; S.plans = o.plans; S.sel = o.sel;
+  await saveClips();
+  for (const n of Object.keys(S.plans)) {
+    const p = S.plans[n];
+    await post("/api/boxes", { job: S.job, n: +n, layout: p.layout || "stack",
+      boxes: p.boxes || null, box: p.box || null, box_fit: !!p.box_fit,
+      clear: !(p.boxes || p.box) });
+  }
+  planToPanel(); drawStrip(); drawSubs(); dirty();
+}
+async function undo() { const s = S.undo.pop(); if (!s) return; S.redo.push(snapshot()); await applySnap(s); }
+async function redo() { const s = S.redo.pop(); if (!s) return; S.undo.push(snapshot()); await applySnap(s); }
+
+/* ---------------- live 9:16 preview, built from the same numbers as render.py ---------------- */
+function cover(g, v, sx, sy, sw, sh, dx, dy, dw, dh) {
+  const sc = Math.max(dw / sw, dh / sh), uw = dw / sc, uh = dh / sc;
+  g.drawImage(v, sx + (sw - uw) / 2, sy + (sh - uh) / 2, uw, uh, dx, dy, dw, dh);
+}
+function contain(g, v, sx, sy, sw, sh, dx, dy, dw, dh) {
+  /* mirrors render.py's "fit whole box": the whole rectangle is kept and the spare space is a
+     blurred copy of it, or the flat fill colour */
+  const flat = (S.opts.fill || "blur") !== "blur";
+  if (flat) { g.fillStyle = S.opts.fill; g.fillRect(dx, dy, dw, dh); }
+  else {
+    g.save(); g.beginPath(); g.rect(dx, dy, dw, dh); g.clip(); g.filter = "blur(12px)";
+    cover(g, v, sx, sy, sw, sh, dx - 14, dy - 14, dw + 28, dh + 28);
+    g.restore(); g.filter = "none";
+    g.fillStyle = "rgba(0,0,0,.14)"; g.fillRect(dx, dy, dw, dh);
+  }
+  const sc = Math.min(dw / sw, dh / sh), w = sw * sc, h = sh * sc;
+  g.drawImage(v, sx, sy, sw, sh, dx + (dw - w) / 2, dy + (dh - h) / 2, w, h);
+}
+function region(g, v, r, vw, vh, dy, dh, fit) {
+  const W = $("#prev").width;
+  const a = [r[0] * vw, r[1] * vh, r[2] * vw, r[3] * vh];
+  if (fit) contain(g, v, a[0], a[1], a[2], a[3], 0, dy, W, dh);
+  else cover(g, v, a[0], a[1], a[2], a[3], 0, dy, W, dh);
+}
+function trackCx(p, t) {
+  const tr = p.track || [];
+  if (!tr.length) return null;
+  if (t <= tr[0][0]) return tr[0][1];
+  for (let i = 1; i < tr.length; i++) {
+    if (t <= tr[i][0]) {
+      const a = tr[i - 1], b = tr[i], f = (t - a[0]) / Math.max(.001, b[0] - a[0]);
+      return a[1] + (b[1] - a[1]) * f;
+    }
+  }
+  return tr[tr.length - 1][1];
+}
+function bandMedia() {
+  /* the band file is loaded into a real <img>/<video> so the preview can draw it; the old build
+     only painted a grey rectangle with the filename in it */
+  const f = S.opts.top || "";
+  if (f === S.bandSrc) return S.band;
+  S.bandSrc = f; S.band = null; S.bandErr = "";
+  if (!f) return null;
+  const url = "/media?path=" + encodeURIComponent(f);
+  const img = /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(f);
+  const el2 = img ? new Image() : document.createElement("video");
+  if (!img) { el2.muted = true; el2.loop = true; el2.playsInline = true; }
+  el2.onerror = () => { S.bandErr = "band file will not load in the browser"; S.band = null; dirty(); };
+  (img ? el2 : el2).onloadeddata = () => { el2.play().catch(() => {}); dirty(); };
+  el2.onload = () => dirty();
+  el2.src = url;
+  S.band = { el: el2, img: img };
+  return S.band;
+}
+function bandFrame() {
+  const b = S.band;
+  if (!b) return null;
+  const e = b.el;
+  if (b.img) return (e.complete && e.naturalWidth) ? { el: e, w: e.naturalWidth, h: e.naturalHeight } : null;
+  return (e.readyState >= 2 && e.videoWidth) ? { el: e, w: e.videoWidth, h: e.videoHeight } : null;
+}
+function previewGeom(p) {
+  /* the same arithmetic render.py does, in output pixels */
+  if (S.uiLayout === "boxes" && p.boxes) {
+    const th = Math.round(RH * ((p.boxes.split || 50) / 100));
+    return { kind: "boxes", th: th, cap_y: Math.min(RH - 120, RH - 230) };
+  }
+  if (S.uiLayout === "cropbox" && p.box) return { kind: "cropbox", cap_y: 1480 };
+  if (S.uiLayout === "crop") return { kind: "crop", cap_y: 1480 };
+  const band = Math.round(RH * (S.opts.top_pct || 0) / 100);
+  const top = !!S.opts.top;
+  const gap = RH - band - RVH;
+  const vy = top ? band : Math.round((RH - RVH) / 2);
+  const cap_y = (gap > 260 || !top) ? Math.min(RH - 120, vy + RVH + 170) : RH - 230;
+  return { kind: "stack", band: band, vy: vy, top: top, cap_y: cap_y };
+}
+function capY(geo) {   /* the dragged position wins, exactly as render.py does it */
+  if (capYAuto()) return geo.cap_y;
+  return Math.round(Math.max(0.06, Math.min(0.97, S.opts.cap_y / 100)) * RH);
+}
+function drawPrev() {
+  /* driven by a timer, not requestAnimationFrame: an occluded or backgrounded pane throttles rAF
+     to a stop and the preview would simply freeze */
+  const v = $("#vid");
+  const moving = !v.paused || S.need || S.prevNeed;
+  if (!moving && S.prevDrawn === v.currentTime) return;
+  S.prevNeed = false;
+  /* a seek drops readyState for a moment: only count a frame we really painted, or the preview
+     would stay on the "no frame yet" placeholder until the next change */
+  S.prevDrawn = (v.readyState >= 2 && v.videoWidth) ? v.currentTime : -1;
+  const cv = $("#prev"), g = cv.getContext("2d"), W = cv.width, H = cv.height, k = H / RH;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.filter = "none";
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  const p = S.sel ? plan(S.sel) : { layout: S.uiLayout };
+  const geo = previewGeom(p);
+  let note = "live preview — nothing is rendered until Render";
+  if (geo.kind !== "crop") trackWin(null);
+  if (v.readyState >= 2 && v.videoWidth) {
+    const vw = v.videoWidth, vh = v.videoHeight, t = v.currentTime || 0;
+    if (geo.kind === "boxes") {
+      const th = Math.round(geo.th * k);
+      region(g, v, p.boxes.top, vw, vh, 0, th, p.boxes.top_fit);
+      region(g, v, p.boxes.bot, vw, vh, th, H - th, p.boxes.bot_fit);
+      /* each half is edged in its own box's colour, so it is obvious which rectangle feeds it */
+      g.lineWidth = 2;
+      g.strokeStyle = C_TOP; g.strokeRect(1, 1, W - 2, th - 2);
+      g.strokeStyle = C_BOT; g.strokeRect(1, th + 1, W - 2, H - th - 2);
+      g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, th); g.lineTo(W, th); g.stroke();
+    } else if (geo.kind === "cropbox") {
+      region(g, v, p.box, vw, vh, 0, H, p.box_fit);
+      g.lineWidth = 2; g.strokeStyle = C_ONE; g.strokeRect(1, 1, W - 2, H - 2);
+    } else if (geo.kind === "crop") {
+      const cw = vh * 9 / 16, cx = trackCx(p, t);
+      const x = cx === null ? (vw - cw) / 2 : clamp(cx * vw - cw / 2, 0, vw - cw);
+      g.drawImage(v, x, 0, cw, vh, 0, 0, W, H);
+      trackWin(x / vw, cw / vw);
+      if (S.trackJid) note = "tracking the subject on clip " + S.trackN + " — reading frames, about a minute";
+      else if (cx === null) note = "auto track: no track yet — press Pick subject and click the person, or Detect subject";
+      else note = "auto track: the 9:16 window follows the subject (" + (p.track || []).length + " points)";
+    } else {
+      const band = Math.round(geo.band * k), vy = Math.round(geo.vy * k), vhp = Math.round(W * 9 / 16);
+      if ((S.opts.fill || "blur") === "blur") {
+        g.save(); g.filter = "blur(14px)";
+        cover(g, v, 0, 0, vw, vh, -20, -20, W + 40, H + 40);
+        g.restore(); g.filter = "none";
+        g.fillStyle = "rgba(0,0,0,.14)"; g.fillRect(0, 0, W, H);
+      } else { g.fillStyle = S.opts.fill; g.fillRect(0, 0, W, H); }
+      if (geo.top && band > 0) {
+        const bf = bandFrame();
+        if (bf) {
+          if (S.opts.band_fit) contain(g, bf.el, 0, 0, bf.w, bf.h, 0, 0, W, band);
+          else cover(g, bf.el, 0, 0, bf.w, bf.h, 0, 0, W, band);
+        } else {
+          g.fillStyle = "#0d1117"; g.fillRect(0, 0, W, band);
+          g.fillStyle = "#6b7788"; g.font = "12px system-ui"; g.textAlign = "center";
+          g.fillText(S.bandErr || ("loading " + baseName(S.opts.top)), W / 2, band / 2);
+          g.textAlign = "left";
+        }
+      }
+      g.drawImage(v, 0, 0, vw, vh, 0, vy, W, vhp);
+      if (band > 0) { g.strokeStyle = "rgba(255,255,255,.22)"; g.beginPath(); g.moveTo(0, band); g.lineTo(W, band); g.stroke(); }
+    }
+  } else {
+    g.fillStyle = "#39414f"; g.font = "13px system-ui"; g.textAlign = "center";
+    g.fillText("no frame yet", W / 2, H / 2); g.textAlign = "left";
+  }
+  const c = curClip(), t = v.currentTime || 0, rel = c ? t - c.start : t;
+  const hook = hookFor(c);
+  if (hook && rel >= 0 && rel <= 3) {
+    const y0 = (geo.kind === "crop" || geo.kind === "cropbox") ? 120 : 54;
+    g.font = "700 " + Math.round(64 * k) + "px system-ui"; g.textAlign = "center";
+    wrapText(hook, 22, 2).forEach((ln, i) => {
+      const y = (y0 + i * 84) * k, tw = g.measureText(ln).width;
+      g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(W / 2 - tw / 2 - 10 * k, y, tw + 20 * k, 76 * k);
+      g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 3;
+      g.strokeText(ln, W / 2, y + 56 * k); g.fillText(ln, W / 2, y + 56 * k);
+    });
+    g.textAlign = "left";
+  }
+  S.capRect = null;
+  if (!S.opts.no_caps && !S.words.length && S.job && !S.trackJid)
+    note = "no captions yet — this job has no transcript: press Transcribe";
+  if (!S.opts.no_caps && S.words.length) {
+    const st = CAP_STYLE[S.opts.cap_style] || CAP_STYLE.clean;
+    const near = S.words.filter(w => w.e >= t - 1.2 && w.s <= t + 1.2);
+    const line = capLines(near, 26, S.opts.cap_words || 4).find(L => L[0].s - 0.35 <= t && t <= L[L.length - 1].e + 0.35);
+    const y = capY(geo) * k;
+    const size = Math.round((S.opts.cap_size || 72) * k);
+    if (line) {
+      g.font = "800 " + size + "px system-ui";
+      const show = w => st.caps ? (w.w || "").toUpperCase() : w.w;
+      const txt = line.map(show).join(" "), tw = g.measureText(txt).width;
+      g.fillStyle = st.box ? "rgba(0,0,0,.72)" : "rgba(0,0,0,.35)";
+      g.fillRect(W / 2 - tw / 2 - (st.box ? 14 : 6), y - size, tw + (st.box ? 28 : 12), size * 1.3);
+      let x = W / 2 - tw / 2;
+      const hot = st.active || S.opts.cap_color || "#ffb02e";
+      line.forEach(w => {
+        const on = t >= w.s && t <= w.e, word = show(w);
+        g.font = "800 " + Math.round(size * (on && st.pop ? 1.14 : 1)) + "px system-ui";
+        g.fillStyle = on ? hot : "#fff";
+        g.strokeStyle = "#000"; g.lineWidth = 3;
+        g.strokeText(word, x, y); g.fillText(word, x, y);
+        x += g.measureText(word + " ").width;
+        g.font = "800 " + size + "px system-ui";
+      });
+      S.capRect = { y0: y - size * 1.15, y1: y + size * 0.3 };
+    } else {
+      S.capRect = { y0: y - size * 1.15, y1: y + size * 0.3 };
+    }
+    if (S.capDrag || !capYAuto()) {     /* a thin guide so you can see what you are moving */
+      g.strokeStyle = S.capDrag ? "rgba(255,176,46,.95)" : "rgba(255,176,46,.35)";
+      g.setLineDash([6, 5]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, y + 2); g.lineTo(W, y + 2); g.stroke(); g.setLineDash([]);
+    }
+  }
+  if ($("#prevnote").textContent !== note) $("#prevnote").textContent = note;
+}
+function hookFor(c) {
+  if (!S.opts.autohook) return S.opts.hook;
+  if (!c) return S.opts.hook;
+  const ws = S.words.filter(w => w.s >= c.start - 0.2 && w.e <= c.end + 0.2);
+  const L = capLines(ws)[0];
+  return L ? L.map(w => w.w).join(" ") : S.opts.hook;
+}
+function wrapText(t, max, maxl) {
+  const out = []; let cur = "";
+  String(t).split(/\s+/).forEach(w => {
+    if ((cur + " " + w).trim().length > max && cur) { out.push(cur); cur = w; } else cur = (cur + " " + w).trim();
+  });
+  if (cur) out.push(cur);
+  return out.slice(0, maxl);
+}
+
+/* ---------------- transport ---------------- */
+function playPause() {
+  const v = $("#vid");
+  if (v.paused) v.play().catch(e => $("#vmsg").textContent = String(e).slice(0, 90)); else v.pause();
+}
+function tick() {
+  const v = $("#vid"), c = curClip();
+  $("#tNow").textContent = fmt(v.currentTime || 0);
+  $("#bPlay").textContent = v.paused ? "Play" : "Pause";
+  if (c && $("#loopClip").checked && !v.paused) {
+    if (v.currentTime > c.end || v.currentTime < c.start - 0.5) v.currentTime = c.start;
+  }
+  if (S.need || (!v.paused && v.currentTime !== S.lastDrawT)) drawTL();
+  markSubLine(false);
+}
+
+/* ---------------- folders: works the same with / (Linux, macOS) and \ (Windows) ---------------- */
+function baseName(p) { return String(p || "").split(/[\\/]/).filter(Boolean).pop() || String(p || ""); }
+function placesRow(places, go) {
+  const r = el("div", "places");
+  (places || []).forEach(p => { const b = el("button", "btn sm ghost"); b.textContent = p.name; b.title = p.path;
+    b.onclick = e => { e.stopPropagation(); go(p.path); }; r.appendChild(b); });
+  return r;
+}
+async function loadSettings() {
+  const s = await getj("/api/settings");
+  if (s && s.first_run) {
+    const b = $("#firstrun");
+    b.innerHTML = "First start: projects are saved in <b>" + esc(s.work_dir) + "</b>. " +
+      "<button class='btn sm' id='frOk'>OK</button> <button class='btn sm ghost' id='frCh'>Change folders…</button>";
+    b.classList.remove("hide");
+    $("#frOk").onclick = async () => { await saveSettings({ work_dir: s.work_dir, video_dirs: s.video_dirs }); b.classList.add("hide"); };
+    $("#frCh").onclick = () => settingsDialog();
+  }
+  return s;
+}
+async function saveSettings(body) {
+  const r = await post("/api/settings", body);
+  if (r && r.error) { showErr(r.error); return null; }
+  clearErr(); $("#firstrun").classList.add("hide");
+  loadRecent(); loadJobs();
+  return r;
+}
+async function settingsDialog() {
+  let s = await getj("/api/settings");
+  const back = el("div", "modal");
+  back.innerHTML = "<div class='sheet'><b>Settings</b>" +
+    "<h5>Projects folder (one sub-folder per imported video: cuts, captions, exports)</h5><div data-wd></div>" +
+    "<h5>Video folders (shown under Recent videos and as shortcuts in Browse)</h5><div data-vd></div>" +
+    "<div class='row'><button class='btn ghost' data-add>Add folder…</button><div class='sp'></div>" +
+    "<button class='btn ghost' data-x>Close</button></div></div>";
+  document.body.appendChild(back);
+  const close = () => back.remove();
+  back.querySelector("[data-x]").onclick = close;
+  back.onclick = e => { if (e.target === back) close(); };
+  const draw = () => {
+    const wd = back.querySelector("[data-wd]"); wd.innerHTML = "";
+    const r = el("div", "setrow"); const c = el("code"); c.textContent = s.work_dir; c.title = s.work_dir;
+    const b = el("button", "btn sm ghost"); b.textContent = "Change…";
+    b.onclick = () => picker("Projects folder", true, s.work_dir, async p => {
+      const n = await saveSettings({ work_dir: p }); if (n) { s = n; draw(); loadJobs(); } });
+    r.appendChild(c); r.appendChild(b); wd.appendChild(r);
+    const note = el("small"); note.style.color = "var(--dim)";
+    note.textContent = s.jobs_here + " project(s) in this folder. Changing it does not move old projects.";
+    wd.appendChild(note);
+    const vd = back.querySelector("[data-vd]"); vd.innerHTML = "";
+    (s.video_dirs || []).forEach((p, i) => {
+      const r = el("div", "setrow"); const c = el("code"); c.textContent = p; c.title = p;
+      const x = el("button", "btn sm ghost"); x.textContent = "Remove";
+      x.onclick = async () => { const v = s.video_dirs.slice(); v.splice(i, 1);
+        const n = await saveSettings({ video_dirs: v }); if (n) { s = n; draw(); } };
+      r.appendChild(c); r.appendChild(x); vd.appendChild(r);
+    });
+    if (!(s.video_dirs || []).length) vd.innerHTML = "<small style='color:var(--dim)'>none — add one</small>";
+  };
+  back.querySelector("[data-add]").onclick = () => picker("Add a video folder", true, "", async p => {
+    const n = await saveSettings({ video_dirs: (s.video_dirs || []).concat([p]) }); if (n) { s = n; draw(); } });
+  draw();
+}
+
+/* ---------------- file / folder picker ---------------- */
+function picker(title, wantDir, start, cb) {
+  const back = el("div", "modal");
+  back.innerHTML = "<div class='sheet'><b>" + title + "</b><input class='pth'><div class='list'></div>" +
+    "<div class='row'><button class='btn ghost' data-x>Cancel</button><button class='btn' data-ok>Use this folder</button></div></div>";
+  if (!wantDir) back.querySelector("[data-ok]").style.display = "none";
+  document.body.appendChild(back);
+  const pth = back.querySelector(".pth"), list = back.querySelector(".list");
+  let cwd = start || "";
+  const close = () => back.remove();
+  back.querySelector("[data-x]").onclick = close;
+  back.querySelector("[data-ok]").onclick = () => { cb(pth.value || cwd); close(); };
+  back.onclick = e => { if (e.target === back) close(); };
+  /* typing a path and pressing Enter jumps there; a file path picks that file straight away */
+  pth.onkeydown = e => {
+    if (e.key !== "Enter") { e.stopPropagation(); return; }
+    e.preventDefault();
+    const want = pth.value.trim();
+    if (!wantDir && /\.[a-z0-9]{2,5}$/i.test(want)) { cb(want); close(); return; }
+    go(want);
+  };
+  async function go(p) {
+    const d = await getj("/api/browse?path=" + encodeURIComponent(p || ""));
+    cwd = d.path; pth.value = d.path; list.innerHTML = "";
+    list.appendChild(placesRow(d.places, go));
+    const up = el("div", "it"); up.innerHTML = "<small>.. up</small>"; up.onclick = () => go(d.up); list.appendChild(up);
+    d.dirs.forEach(x => { const i = el("div", "it"); i.innerHTML = "<small>dir</small> " + x.name;
+      i.onclick = () => go(x.path); list.appendChild(i); });
+    if (!wantDir) d.files.forEach(x => { const i = el("div", "it"); i.textContent = x.name;
+      i.onclick = () => { cb(x.path); close(); }; list.appendChild(i); });
+  }
+  go(cwd);
+}
+
+/* ---------------- actions ---------------- */
+async function ingest() {
+  const src = $("#srcPath").value.trim(); if (!src) return showErr("give a file path or a URL first");
+  clearErr();
+  if (!/^https?:/.test(src)) previewFile(src);
+  const r = await post("/api/ingest", { src: src });
+  S.lastJid = r.job_id; S.pendingJob = r.job;          /* opened automatically when ingest finishes */
+  $("#jobname").textContent = (r.job || src) + " — ingesting ...";
+}
+function uploadFile(f) {
+  /* streamed to the server in one request, then ingested like any other file. The progress line is
+     the real byte count, not a spinner. */
+  if (!f) return;
+  clearErr();
+  const x = new XMLHttpRequest();
+  x.open("POST", "/api/upload?name=" + encodeURIComponent(f.name));
+  x.setRequestHeader("Content-Type", "application/octet-stream");
+  x.upload.onprogress = e => { if (e.lengthComputable)
+    $("#jobname").textContent = f.name + " — uploading " + Math.round(100 * e.loaded / e.total) + "%"; };
+  x.onload = () => {
+    let r = {}; try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (r.error) { $("#jobname").textContent = "upload failed"; return showErr(r.error); }
+    S.lastJid = r.job_id; S.pendingJob = r.job;
+    $("#jobname").textContent = (r.job || f.name) + " — ingesting ...";
+  };
+  x.onerror = () => showErr("upload failed - is the server still running?");
+  x.send(f);
+}
+async function doRender(all) {
+  if (!S.job) return showErr("load a job first");
+  if (!S.clips.length) return showErr("no clips to render");
+  panelToOpts();
+  await post("/api/sync_plans", { job: S.job });
+  const ns = all ? S.clips.map(c => c.n) : [S.sel];
+  const opts = Object.assign({}, S.opts);
+  if (S.opts.autohook) {
+    opts.hooks = {}; S.clips.forEach(c => { if (ns.indexOf(c.n) >= 0) opts.hooks[String(c.n)] = hookFor(c); });
+  }
+  if (!opts.top) { delete opts.top; opts.no_top = true; }
+  const r = await post("/api/render", { job: S.job, clips: ns, opts: opts });
+  S.lastJid = r.job_id;
+  $("#renderhint").textContent = "rendering clip" + (ns.length > 1 ? "s " : " ") + ns.join(", ") +
+    " — the log shows ffmpeg, the card shows the validator's verdict";
+}
+
+/* ---------------- wiring ---------------- */
+function wire() {
+  $("#bLoad").onclick = ingest;
+  $("#bPreview").onclick = () => { const p = $("#srcPath").value.trim(); if (p) previewFile(p); };
+  $("#browsePath").onchange = e => loadBrowse(e.target.value);
+  $("#bTrans").onclick = async () => { if (!S.job) return showErr("load a job first");
+    S.lastJid = (await post("/api/transcribe", { job: S.job, model: $("#model").value })).job_id; };
+  $("#bMoments").onclick = async () => { if (!S.job) return showErr("load a job first");
+    S.lastJid = (await post("/api/moments", { job: S.job, style: $("#style").value, count: +$("#count").value,
+      min: +$("#minlen").value, max: +$("#maxlen").value })).job_id; };
+  $("#bCancel").onclick = async () => { if (S.runJid) await post("/api/cancel", { job_id: S.runJid }); };
+  $("#bPlay").onclick = playPause;
+  $("#bZin").onclick = () => zoom(0.6); $("#bZout").onclick = () => zoom(1.7);
+  $("#bFit").onclick = fitAll; $("#bFitClip").onclick = fitClip;
+  $("#bIn").onclick = () => { const c = curClip(); if (!c) return; mark();
+    c.start = clamp($("#vid").currentTime, 0, c.end - 0.4); saveClips(); drawStrip(); dirty(); };
+  $("#bOut").onclick = () => { const c = curClip(); if (!c) return; mark();
+    c.end = clamp($("#vid").currentTime, c.start + 0.4, S.dur); saveClips(); drawStrip(); dirty(); };
+  $("#bSplit").onclick = () => S.sel && splitClip(S.sel);
+  $("#bDel").onclick = () => S.sel && delClip(S.sel, true);
+  $("#bAdd").onclick = addClip;
+  $("#bUndo").onclick = undo; $("#bRedo").onclick = redo;
+  $("#bRender").onclick = () => doRender(false);
+  $("#bRenderAll").onclick = () => doRender(true);
+  $("#bOpen").onclick = () => getj("/api/reveal?path=" + encodeURIComponent($("#outdir").value));
+  $("#bProxy").onclick = async () => {
+    if (!S.job) return showErr("load the file first, then make a preview copy");
+    $("#vmsg").textContent = "building the preview copy ...";
+    S.lastJid = (await post("/api/proxy", { job: S.job })).job_id;
+  };
+  $("#bPanels").onclick = () => $("#main").classList.toggle("narrow");
+  ["inNum", "outNum"].forEach(id => $("#" + id).onchange = () => {
+    const c = curClip(); if (!c) return; mark();
+    const a = parseFloat($("#inNum").value), b = parseFloat($("#outNum").value);
+    if (isFinite(a)) c.start = clamp(a, 0, (isFinite(b) ? b : c.end) - 0.4);
+    if (isFinite(b)) c.end = clamp(b, c.start + 0.4, S.dur);
+    saveClips(); drawStrip(); dirty();
+  });
+  document.querySelectorAll("[data-nudge]").forEach(b => b.onclick = () => {
+    const c = curClip(); if (!c) return;
+    const parts = b.dataset.nudge.split(","), d = parseFloat(parts[1]);
+    mark();
+    if (parts[0] === "in") c.start = clamp(c.start + d, 0, c.end - 0.4);
+    else c.end = clamp(c.end + d, c.start + 0.4, S.dur);
+    saveClips(); drawStrip(); dirty();
+  });
+  $("#layout").onchange = e => {
+    S.uiLayout = e.target.value;
+    const c = curClip();
+    if (c) { mark(); const p = plan(c.n);
+      if (S.uiLayout === "boxes") { if (!p.boxes) p.boxes = DEF_BOXES(); p.layout = "boxes"; }
+      else if (S.uiLayout === "cropbox") { if (!p.box) p.box = DEF_BOX(); p.layout = "crop"; }
+      else { p.layout = S.uiLayout; delete p.boxes; delete p.box; } }
+    $("#splitFld").style.display = S.uiLayout === "boxes" ? "" : "none";
+    $("#stackFlds").style.display = S.uiLayout === "stack" ? "" : "none";
+    if (c) fitToPanel(plan(c.n));
+    syncPortrait();
+    saveBoxes(); drawBoxes(); dirty();
+  };
+  // ---- drag the caption block up and down on the 9:16 preview
+  $("#prev").onmousedown = ev => {
+    ev.preventDefault();
+    const r = $("#prev").getBoundingClientRect();
+    /* only a grab near the caption moves it, so an idle click on the preview changes nothing */
+    const cv = $("#prev"), capPx = S.capRect ? (S.capRect.y0 + S.capRect.y1) / 2 : null;
+    if (capPx !== null) {
+      const capClientY = r.top + capPx / cv.height * r.height;
+      if (Math.abs(ev.clientY - capClientY) > r.height * 0.09) return;
+    }
+    const set = e => {
+      const pct = (e.clientY - r.top) / Math.max(1, r.height) * 100;
+      S.opts.cap_y = Math.round(Math.max(20, Math.min(97, pct)));
+      $("#capy").value = S.opts.cap_y; $("#capYVal").textContent = S.opts.cap_y + "%";
+      dirty();
+    };
+    S.capDrag = true; set(ev);
+    const up = () => { window.removeEventListener("mousemove", set); window.removeEventListener("mouseup", up);
+                       S.capDrag = false; panelToOpts(); };
+    window.addEventListener("mousemove", set); window.addEventListener("mouseup", up);
+  };
+  $("#prev").style.cursor = "ns-resize";
+  $("#prev").title = "drag up or down to move the captions";
+  $("#capy").oninput = e => { S.opts.cap_y = +e.target.value;
+    $("#capYVal").textContent = S.opts.cap_y + "%"; dirty(); };
+  $("#capy").onchange = () => panelToOpts();
+  $("#bCapAuto").onclick = () => { S.opts.cap_y = null; $("#capYVal").textContent = "auto";
+    $("#capy").value = 78; panelToOpts(); };
+  ["#capstyle", "#capcolor", "#capwords", "#size", "#fps", "#quality", "#bandfit"]
+    .forEach(id => { $(id).onchange = () => { panelToOpts(); drawSubs(); }; });
+  $("#bitrate").onchange = () => { $("#quality").value = "custom"; S.opts.quality = "custom";
+    S.opts.bitrate = $("#bitrate").value; panelToOpts(); };
+
+  // ---- pick which person the tracker follows
+  $("#bPick").onclick = () => {
+    if (!curClip()) return showErr("pick a clip first");
+    S.picking = !S.picking;
+    $("#bPick").classList.toggle("on", S.picking);
+    $("#subjhint").textContent = S.picking
+      ? "click the person you want followed on the frame above"
+      : "tracking follows the most confident person — press Pick subject, then click the one you want followed";
+  };
+  $("#vwrap").addEventListener("mousedown", ev => {
+    if (!S.picking) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const cr = contentRect(), wr = $("#vwrap").getBoundingClientRect();
+    const cx = (ev.clientX - wr.left - cr.x) / cr.w;
+    if (cx < 0 || cx > 1) return;
+    const c = curClip(); if (!c) return;
+    const p = plan(c.n);
+    p.subject = [+cx.toFixed(4), 0.25];          // centre + a starting width, the tracker refines it
+    S.picking = false; $("#bPick").classList.remove("on");
+    post("/api/boxes", { job: S.job, n: c.n, subject: p.subject });
+    drawBoxes(); trackClip(c, p.subject);
+  }, true);
+  $("#bPickClear").onclick = () => {
+    const c = curClip(); if (!c) return;
+    const p = plan(c.n); p.subject = null;
+    post("/api/boxes", { job: S.job, n: c.n, clear_subject: true });
+    $("#subjhint").textContent = "tracking follows the most confident person again";
+    drawBoxes(); dirty();
+  };
+  $("#pmFull").onclick = () => setPortraitMode("cropbox");
+  $("#pmSplit").onclick = () => setPortraitMode("boxes");
+  const setSplit = (v, save) => {
+    const c = curClip(); if (!c) return;
+    const p = plan(c.n); if (!p.boxes) p.boxes = DEF_BOXES();
+    p.boxes.split = clamp(Math.round(v), 15, 85);
+    $("#split").value = p.boxes.split; $("#splitVal").textContent = p.boxes.split + "%";
+    $("#pgrip").style.top = p.boxes.split + "%";
+    dirty(); if (save) saveBoxes();
+  };
+  $("#split").oninput = e => setSplit(+e.target.value, false);
+  $("#split").onchange = () => setSplit(+$("#split").value, true);
+  $("#pgrip").onmousedown = ev => {
+    /* drag the divider itself — the slider and the grip are two handles on the same number */
+    ev.preventDefault();
+    const before = snapshot();
+    const move = e => {
+      const r = $("#prev").getBoundingClientRect();
+      setSplit((e.clientY - r.top) / Math.max(1, r.height) * 100, false);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up);
+      S.undo.push(before); S.redo = []; setSplit(+$("#split").value, true);
+    };
+    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+  };
+  const fitBox = (id, set) => $(id).onchange = e => {
+    const c = curClip(); if (!c) return;
+    mark(); const p = plan(c.n); set(p, e.target.checked); saveBoxes(); dirty();
+  };
+  fitBox("#fitTop", (p, v) => { if (!p.boxes) p.boxes = DEF_BOXES(); p.boxes.top_fit = v; });
+  fitBox("#fitBot", (p, v) => { if (!p.boxes) p.boxes = DEF_BOXES(); p.boxes.bot_fit = v; });
+  fitBox("#fitOne", (p, v) => { p.box_fit = v; });
+  $("#bBoxReset").onclick = () => { const c = curClip(); if (!c) return; mark();
+    const p = plan(c.n); if (S.uiLayout === "boxes") p.boxes = DEF_BOXES(); else p.box = DEF_BOX();
+    saveBoxes(); drawBoxes(); };
+  $("#bBoxAll").onclick = async () => {
+    const c = curClip(); if (!c) return;
+    const p = plan(c.n);
+    for (const o of S.clips) {
+      if (o.n === c.n) continue;
+      await post("/api/boxes", { job: S.job, n: o.n, layout: p.layout || "stack",
+        boxes: p.boxes || null, box: p.box || null, box_fit: !!p.box_fit,
+        clear: !(p.boxes || p.box) });
+      S.plans[o.n] = Object.assign({}, S.plans[o.n] || {},
+        { boxes: p.boxes, box: p.box, box_fit: !!p.box_fit });
+    }
+    drawStrip();
+  };
+  $("#bTrack").onclick = async () => {
+    if (!S.job) return showErr("load a job first");
+    const c = curClip(); if (!c) return showErr("pick a clip first");
+    trackClip(c, plan(c.n).subject || null);
+  };
+  $("#bUpload").onclick = () => $("#upfile").click();
+  $("#upfile").onchange = e => { uploadFile(e.target.files[0]); e.target.value = ""; };
+  $("#bTopPick").onclick = () => picker("Pick a clip or still for the top band", false, "", p => {
+    $("#topfile").value = p; panelToOpts(); saveBoxes(); });
+  $("#bTopClear").onclick = () => { $("#topfile").value = ""; panelToOpts(); saveBoxes(); };
+  $("#bOutPick").onclick = () => picker("Pick the output folder", true, $("#outdir").value, p => {
+    $("#outdir").value = p; panelToOpts(); });
+  ["hook", "cta", "bitrate", "outdir", "capsize", "toppct", "round"].forEach(id => $("#" + id).oninput = panelToOpts);
+  ["nocaps", "cutsil", "cutfil", "autohook", "fill"].forEach(id => $("#" + id).onchange = panelToOpts);
+  $("#showBoxes").onchange = drawBoxes;
+  $("#tl").addEventListener("mousedown", tlDown);
+  $("#tl").addEventListener("wheel", e => { e.preventDefault();
+    const r = $("#tl").getBoundingClientRect(); zoom(e.deltaY > 0 ? 1.25 : 0.8, x2t(e.clientX - r.left)); }, { passive: false });
+  window.addEventListener("resize", () => { layoutOverlay(); dirty();
+    $("#main").classList.toggle("narrow", window.innerWidth < 1120); });
+  $("#vid").addEventListener("loadeddata", layoutOverlay);
+  if (window.ResizeObserver) {          /* panel toggles / narrow layout move the video without a window resize */
+    const ro = new ResizeObserver(() => { layoutOverlay(); dirty(); });
+    ro.observe($("#vid")); if ($("#vwrap")) ro.observe($("#vwrap"));
+  }
+
+  document.addEventListener("keydown", e => {
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || e.target.isContentEditable) return;
+    if (e.ctrlKey || e.metaKey) {                        /* only the combos we really mean */
+      if (e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+      if (e.key.toLowerCase() === "s") { e.preventDefault(); saveProject(); $("#renderhint").textContent = "project saved"; }
+      return;
+    }
+    if (e.altKey) return;
+    const v = $("#vid"), c = curClip(), frame = 1 / ((S.meta && S.meta.fps) || 30);
+    if (e.key === " ") { e.preventDefault(); playPause(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); seek(v.currentTime - (e.shiftKey ? 1 : frame)); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); seek(v.currentTime + (e.shiftKey ? 1 : frame)); }
+    else if (e.key === "j" || e.key === "J") seek(v.currentTime - 2);
+    else if (e.key === "k" || e.key === "K") { v.pause(); S.rate = 1; v.playbackRate = 1; }
+    else if (e.key === "l" || e.key === "L") {
+      if (v.paused) { v.play(); S.rate = 1; } else S.rate = Math.min(4, S.rate * 1.5);
+      v.playbackRate = S.rate;
+    }
+    else if (e.key === "i" || e.key === "I") $("#bIn").click();
+    else if (e.key === "o" || e.key === "O") $("#bOut").click();
+    else if (e.key === "s" || e.key === "S") { if (c) splitClip(c.n); }
+    else if (e.key === "Delete") { if (c) delClip(c.n, true); }
+  });
+}
+
+wire(); $("#bSettings").onclick = () => settingsDialog(); loadSettings(); loadRecent(); loadBrowse(""); loadJobs(); ladder(); drawStrip(); drawSubs(); envCheck();
+/* a refresh used to leave an empty editor: reopen the job that was open, if it still exists */
+(async () => {
+  let last = null;
+  try { last = localStorage.getItem("clipper2.lastJob"); } catch (e) {}
+  if (!last) return;
+  const d = await getj("/api/jobs");
+  if ((d.jobs || []).some(j => j.job === last)) selJob(last);
+  else try { localStorage.removeItem("clipper2.lastJob"); } catch (e) {}
+})();
+$("#main").classList.toggle("narrow", window.innerWidth < 1120);
+setInterval(tick, 80);
+setInterval(drawPrev, 40);
+poll();
+setTimeout(dirty, 80);
+</script>
+</body>
+</html>

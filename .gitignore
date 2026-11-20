@@ -1,0 +1,8 @@
+.venv/
+work/
+settings.json
+settings.json.tmp
+*.pt
+__pycache__/
+bin/
+*.pyc
